@@ -1,0 +1,112 @@
+/******************************************************************************
+ * Copyright (c) 2011-2019, NVIDIA CORPORATION.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are not permitted.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL NVIDIA CORPORATION BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ ******************************************************************************/
+
+#pragma once
+
+/**
+ * \file
+ * \brief C++ interface to CUDA device memory management functions.
+ */
+
+#include <memory>
+
+#include "exceptions.h"
+
+namespace cublas {
+namespace device_memory {
+
+/******************************************************************************
+ * Allocation lifetime
+ ******************************************************************************/
+
+/// Allocate a buffer of \p count elements of type \p T on the current CUDA device
+template <typename T>
+T* allocate(size_t count = 1) {
+  T* ptr = 0;
+  size_t bytes = sizeof(T) * count;
+
+  cudaError_t cuda_error = cudaMalloc((void**)&ptr, bytes);
+  if (cuda_error != cudaSuccess) {
+    throw cuda_exception(cuda_error, "Failed to allocate memory");
+  }
+
+  return ptr;
+}
+
+/// Free the buffer pointed to by \p ptr
+template <typename T>
+void free(T* ptr) {
+  if (ptr) {
+    cudaError_t cuda_error = (cudaFree(ptr));
+    if (cuda_error != cudaSuccess) {
+      throw cuda_exception(cuda_error, "Failed to free device memory");
+    }
+  }
+}
+
+/******************************************************************************
+ * Data movement
+ ******************************************************************************/
+
+template <typename T>
+void copy(T* dst, T const* src, size_t count, cudaMemcpyKind kind) {
+  size_t bytes = count * sizeof(T);
+  if (bytes == 0 && count > 0)
+    bytes = 1;
+  cudaError_t cuda_error = (cudaMemcpy(dst, src, bytes, kind));
+  if (cuda_error != cudaSuccess) {
+    throw cuda_exception(cuda_error, "cudaMemcpy() failed");
+  }
+}
+
+template <typename T>
+void copy_to_device(T* dst, T const* src, size_t count = 1) {
+  copy(dst, src, count, cudaMemcpyHostToDevice);
+}
+
+template <typename T>
+void copy_to_host(T* dst, T const* src, size_t count = 1) {
+  copy(dst, src, count, cudaMemcpyDeviceToHost);
+}
+
+template <typename T>
+void copy_device_to_device(T* dst, T const* src, size_t count = 1) {
+  copy(dst, src, count, cudaMemcpyDeviceToDevice);
+}
+
+template <typename T>
+void copy_host_to_host(T* dst, T const* src, size_t count = 1) {
+  copy(dst, src, count, cudaMemcpyHostToHost);
+}
+
+/// Copies elements from device memory to host-side range
+template <typename OutputIterator, typename T>
+void insert_to_host(OutputIterator begin, OutputIterator end, T const* device_begin) {
+  size_t elements = end - begin;
+  copy_to_host(&*begin, device_begin, elements);
+}
+
+/// Copies elements to device memory from host-side range
+template <typename T, typename InputIterator>
+void insert_to_device(T* device_begin, InputIterator begin, InputIterator end) {
+  size_t elements = end - begin;
+  copy_to_device(device_begin, &*begin, elements);
+}
+} // namespace device_memory 
+} // namespace cublas
