@@ -36,10 +36,12 @@ template <> __inline__ __device__ __host__  __half cuGet<__half >(float x)
 {
   return __float2half_rn( x );
 }
+/****
 template <> __inline__ __device__ __host__  __bfloat16 cuGet<__bfloat16 >(float x)
 {
   return __float2bfloat16_rn( x );
 }
+****/
 
 template <> __inline__ __device__ __host__   cuComplex cuGet<cuComplex>(float x)
 {

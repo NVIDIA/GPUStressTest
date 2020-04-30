@@ -113,6 +113,7 @@ template<> double coefGemmSOL<__half>(int mathMode, int major, int minor, int al
     return 0.0;
   }
 }
+/***
 template<> double coefGemmSOL<__bfloat16>(int mathMode, int major, int minor, int algorithm) {
   if(major >= 8) {
     return coefGemmSOL<__half>(mathMode, major, minor, algorithm); // assuming same as for half
@@ -120,6 +121,8 @@ template<> double coefGemmSOL<__bfloat16>(int mathMode, int major, int minor, in
     return 1.0; // using ffma
   }
 }
+****/
+
 template<> double coefGemmSOL<int>(int mathMode, int major, int minor, int algorithm) {
   if(major >= 7) {
     return 4.0;
@@ -150,7 +153,9 @@ template<typename T_MATH> char gemmType();
 template<> char gemmType<float>() { return 's'; }
 template<> char gemmType<double>() { return 'd'; }
 template<> char gemmType<__half>() { return 'h'; }
+/***
 template<> char gemmType<__bfloat16>() { return 't'; }
+***/
 template<> char gemmType<int>() { return 'i'; }
 template<> char gemmType<int8_t>() { return 'b'; }
 template<> char gemmType<cuComplex>() { return 'c'; }
@@ -223,7 +228,9 @@ void printGemmSOL(int mathMode, double computeSeconds, int iterations, int m, in
 template void printGemmSOL<float>(int mathMode, double computeSeconds, int iterations, int m, int n, int k, int algorithm);
 template void printGemmSOL<double>(int mathMode, double computeSeconds, int iterations, int m, int n, int k, int algorithm);
 template void printGemmSOL<__half>(int mathMode, double computeSeconds, int iterations, int m, int n, int k, int algorithm);
+/**
 template void printGemmSOL<__bfloat16>(int mathMode, double computeSeconds, int iterations, int m, int n, int k, int algorithm);
+***/
 template void printGemmSOL<int>(int mathMode, double computeSeconds, int iterations, int m, int n, int k, int algorithm);
 template void printGemmSOL<int8_t>(int mathMode, double computeSeconds, int iterations, int m, int n, int k, int algorithm);
 template void printGemmSOL<cuComplex>(int mathMode, double computeSeconds, int iterations, int m, int n, int k, int algorithm);

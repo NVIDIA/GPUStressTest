@@ -40,6 +40,7 @@
 #include <chrono>
 //#include <cublas_v2.h>
 #include <cublas_api.h>
+//#include <cuda_bf16.h>
 
 
 using std::string;
