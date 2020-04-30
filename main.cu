@@ -91,16 +91,12 @@ void* watchdog(void* in)
     do {
         sem_wait(&wd);
 
-#ifdef linux
-        clock_gettime(CLOCK_REALTIME, &ts)
-#else
         auto now = std::chrono::system_clock::now();
         auto secs = std::chrono::time_point_cast<std::chrono::seconds>(now);
         auto epoch_secs = secs.time_since_epoch();
         auto value_secs = std::chrono::duration_cast<std::chrono::seconds>(epoch_secs);
         ts.tv_sec = value_secs.count();
         ts.tv_nsec = 0L;
-#endif
         ts.tv_sec += TEST_WAIT_TIME;
         n = sem_timedwait(&done, &ts);
         if ((n == -1) && (errno == ETIMEDOUT) && (tstate[i].test_state == 1)) {
@@ -141,7 +137,7 @@ using cublas::CommandLine;
 template <typename T_IN, typename T_OUT, typename T_MATH, typename T_SCALE>
 static int 
 lt_gemm(cublasLtHandle_t ltHandle,
-        const BlasOpts& blas_opts,
+        BlasOpts& blas_opts,
         T_IN *A,
         T_IN *B,
         T_OUT *C,
@@ -154,21 +150,52 @@ lt_gemm(cublasLtHandle_t ltHandle,
     cublasLtMatmulDesc_t matmulDesc = NULL;
     const size_t workspaceSize = 1024 * 1024 * 4;
     void * workspace;
+
+    int ldatransform = lda;
+    int ldbtransform = ldb;
+    int ldctransform = ldc;
+    blas_opts.m_orderingA = CUBLASLT_ORDER_COL;
+    blas_opts.m_orderingB = CUBLASLT_ORDER_COL;
+    blas_opts.m_orderingC = CUBLASLT_ORDER_COL;
+
+
+    /*
     int ldatransform = blas_opts.m_orderingA == CUBLASLT_ORDER_COL ? lda : 32 * lda;
     int ldbtransform = 0;
     int ldctransform = blas_opts.m_orderingC == CUBLASLT_ORDER_COL ? ldc : 32 * ldc; 
 
+    // DEBUG
+    if (blas_opts.m_orderingA == CUBLASLT_ORDER_COL) {
+	    cout << "DEBUG: m_orderingA == CUBLASLT_ORDER_COL" << endl;
+    } else {
+	    cout << "DEBUG: m_orderingA " << blas_opts.m_orderingA << endl;
+    }
+    // DEBUG
+
     switch(blas_opts.m_orderingB) {
       case CUBLASLT_ORDER_COL32_2R_4R4: // for ampere  
+	    cout << "DEBUG: m_orderingB == CUBLASLT_ORDER_COL32_2R_4R4 == " << blas_opts.m_orderingB << endl;
         ldbtransform = 32 * roundoff(ldb, 32);    
         break;
       case CUBLASLT_ORDER_COL:
+	 cout << "DEBUG: m_orderingB  CUBLASLT_ORDER_COL" << endl;
         ldbtransform = ldb;  
         break;
       default:
         ldbtransform = 32 * roundoff(ldb, 8);  
         break;
     }
+    */
+
+    // DEBUG
+    if (blas_opts.m_orderingC == CUBLASLT_ORDER_COL) {
+	    cout << "DEBUG: m_orderingC == CUBLASLT_ORDER_COL" << endl;
+    } else {
+	    cout << "DEBUG: m_orderingC " << blas_opts.m_orderingC << endl;
+    }
+    // DEBUG
+
+    cout << "DEBUG: alloc 1" << endl;
 
     cublas::cuda_check_error(cudaMalloc(&workspace, workspaceSize), "cudaMalloc for workspace failed");
 
@@ -229,6 +256,7 @@ lt_gemm(cublasLtHandle_t ltHandle,
     using namespace std::chrono;
     high_resolution_clock::time_point start = high_resolution_clock::now();
     for (int i = 0; i < blas_opts.timing_loop; ++i) {
+      cout << "DEBUG: call matmul" <<endl;
       cublas::cublas_check_error(cublasLtMatmul(ltHandle,
                                                 matmulDesc,
                                                 &alpha,
@@ -291,7 +319,7 @@ lt_gemm(cublasLtHandle_t ltHandle,
 
 template <typename T_IN, typename T_OUT, typename T_MATH, typename T_SCALE>
 static void
-test_engine(const BlasOpts& blas_opts) {
+test_engine(BlasOpts& blas_opts) {
   /* printf("testing cublasLt\n"); */
   try {
     T_IN *d_A = nullptr;
@@ -355,8 +383,16 @@ test_engine(const BlasOpts& blas_opts) {
     matrixSizeB = (size_t)rowsB * colsB;
     matrixSizeC = (size_t)rowsC * colsC;
 
+    // DEBUG
+    cout << "DEBUG: rowsA " << rowsA << endl;
+    cout << "DEBUG: rowsB " << rowsB << endl;
+    cout << "DEBUG: rowsC " << rowsC << endl;
+
+    cout << "DEBUG: alloc 2 " << matrixSizeA << endl;
     d_A = cublas::device_memory::allocate<T_IN>(matrixSizeA);
+    cout << "DEBUG: alloc 3 " << matrixSizeB << endl;
     d_B = cublas::device_memory::allocate<T_IN>(matrixSizeB);
+    cout << "DEBUG: alloc 4 " << matrixSizeC << endl;
     d_C = cublas::device_memory::allocate<T_OUT>(matrixSizeC);
     
     //cublas::cuda_check_error(cudaMemset(d_C, 0, matrixSizeC * sizeof(h_C[0])), "cudaMemset error");
@@ -405,51 +441,64 @@ test_cublasLt(BlasOpts& blas_opts) {
   try{    
     switch(blas_opts.math_type) {
       case CUDA_R_32F: //sss A,B : FP32 ->  C FP32
+	      cout << "DEBUG: CUDA_R_32F ";
         if ((blas_opts.input_type == CUDA_R_32F) &&
             (blas_opts.output_type == CUDA_R_32F) &&
             (blas_opts.scale_type == CUDA_R_32F)) {
+	      cout << "DEBUG: <float, float, float, float>" << endl;
           test_engine<float, float, float, float>(blas_opts);
         } //hss A,B FP16 ->  C FP32 
         if ((blas_opts.input_type == CUDA_R_16F) &&
             (blas_opts.output_type == CUDA_R_32F) &&
             (blas_opts.scale_type == CUDA_R_32F)) {
+	      cout << "DEBUG:  __half, float, float, float" << endl;
           test_engine<__half, float, float, float>(blas_opts);
         } // hsh A,B FP16 ->  C FP16
         if ((blas_opts.input_type == CUDA_R_16F) &&
             (blas_opts.output_type == CUDA_R_16F) &&
             (blas_opts.scale_type == CUDA_R_32F)) {
+	      cout << "DEBUG: __half, __half, float, float" << endl;
           test_engine<__half, __half, float, float>(blas_opts);
         } 
         break;
       case CUDA_C_32F: //ccc
+	      cout << "DEBUG: CUDA_C_32F ";
         if ((blas_opts.input_type == CUDA_C_32F) &&
             (blas_opts.output_type == CUDA_C_32F) &&
             (blas_opts.scale_type == CUDA_C_32F)) {
+	      cout << "DEBUG: <cuComplex, cuComplex, cuComplex, cuComplex>" << endl;
           test_engine<cuComplex, cuComplex, cuComplex, cuComplex>(blas_opts);
         } 
         break; 
       case CUDA_R_64F: //ddd A,B : FP64 ->  C FP64
+	      cout << "DEBUG: CUDA_R_64F ";
         if ((blas_opts.input_type == CUDA_R_64F) &&
             (blas_opts.output_type == CUDA_R_64F) &&
             (blas_opts.scale_type == CUDA_R_64F)) {
+	      cout << "DEBUG: <double, double, double, double>" << endl;
           test_engine<double, double, double, double>(blas_opts);
         } 
         break;
       case CUDA_C_64F: // zzz 
+	      cout << "DEBUG: CUDA_C_64F ";
         if ((blas_opts.input_type == CUDA_C_64F) &&
             (blas_opts.output_type == CUDA_C_64F) &&
             (blas_opts.scale_type == CUDA_C_64F)) {
+	      cout << "DEBUG: <cuDoubleComplex, cuDoubleComplex, cuDoubleComplex, cuDoubleComplex> " << endl;
           test_engine<cuDoubleComplex, cuDoubleComplex, cuDoubleComplex, cuDoubleComplex>(blas_opts);
         }  
         break;
       case CUDA_R_16F: // hhh   
+	      cout << "DEBUG: CUDA_R_16F ";
         if ((blas_opts.input_type == CUDA_R_16F) &&
             (blas_opts.output_type == CUDA_R_16F) &&
             (blas_opts.scale_type == CUDA_R_16F)) {
+	      cout << "DEBUG: <__half, __half, __half,__half> " << endl;
           test_engine<__half, __half, __half,__half>(blas_opts);
         } 
         break;
       case CUDA_R_32I: {//bisb_imma
+	      cout << "DEBUG: CUDA_R_32I ";
           int device_version = 0;
           cublas::cuda_check_error(get_device_version(device_version), "get device version failed");          
           if (device_version < 750) {
@@ -465,12 +514,14 @@ test_cublasLt(BlasOpts& blas_opts) {
           if ((blas_opts.input_type == CUDA_R_8I) &&
               (blas_opts.output_type == CUDA_R_8I) &&
               (blas_opts.scale_type == CUDA_R_32F)) {
+	      cout << "DEBUG: <int8_t, int8_t, int, float> " << endl;
               
             test_engine<int8_t, int8_t, int, float>(blas_opts);
           } //bii_imma
           if ((blas_opts.input_type == CUDA_R_8I) &&
               (blas_opts.output_type == CUDA_R_32I) &&
               (blas_opts.scale_type == CUDA_R_32I)) {
+	      cout << "DEBUG: <int8_t, int, int, int> " << endl;
             test_engine<int8_t, int, int, int>(blas_opts);
           } 
         }
@@ -575,6 +626,8 @@ int main(int argc, char *argv[]) {
           printf("EXITING\n");
           exit(0);
       }
+      gpumem=16;
+
       printf("GPU Memory: %lld, memgb: %d\n", gpumem, memgb);
       printf("\n\n");
 
