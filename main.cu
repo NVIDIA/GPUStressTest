@@ -256,7 +256,7 @@ lt_gemm(cublasLtHandle_t ltHandle,
     using namespace std::chrono;
     high_resolution_clock::time_point start = high_resolution_clock::now();
     for (int i = 0; i < blas_opts.timing_loop; ++i) {
-      cout << "DEBUG: call matmul" <<endl;
+//      cout << "DEBUG: call matmul" <<endl;
       cublas::cublas_check_error(cublasLtMatmul(ltHandle,
                                                 matmulDesc,
                                                 &alpha,

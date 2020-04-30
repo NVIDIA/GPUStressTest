@@ -60,7 +60,7 @@
 #define NUM_TESTS 5
 
 #ifdef __linux__ 
-#define TEST_WAIT_TIME 30
+#define TEST_WAIT_TIME 600
 #define SLEEP(waitsec) sleep(waitsec);
 
 #else
