@@ -58,13 +58,10 @@
 /* WGST specific defines */
 #define MAX_NUM_GPUS 32
 #define NUM_TESTS 5
+#define TEST_WAIT_TIME 600
 
 #ifdef __linux__ 
-#define TEST_WAIT_TIME 600
-#define SLEEP(waitsec) sleep(waitsec);
-
 #else
-#define TEST_WAIT_TIME 600 
 #include <Windows.h>
 #endif
 

@@ -89,9 +89,13 @@ void* watchdog(void* in)
     int i = 0, n = 0;
     struct timespec ts;
     
+    //cout << "DEBUG: wd before inital sem_post " << i << endl;
     sem_post(&go);
+    //cout << "DEBUG: wd after inital sem_post " << i << endl;
     do {
+	// cout << "DEBUG: wd loop top before sem_wait " << i << endl;
         sem_wait(&wd);
+	// cout << "DEBUG: wd loop top after sem_wait " << i << endl;
 
         auto now = std::chrono::system_clock::now();
         auto secs = std::chrono::time_point_cast<std::chrono::seconds>(now);
@@ -100,7 +104,9 @@ void* watchdog(void* in)
         ts.tv_sec = value_secs.count();
         ts.tv_nsec = 0L;
         ts.tv_sec += TEST_WAIT_TIME;
+	// cout << "DEBUG: wd before sem_timedwait "<< i << endl;
         n = sem_timedwait(&done, &ts);
+	// cout << "DEBUG: wd after sem_timedwait " << i << endl;
         if ((n == -1) && (errno == ETIMEDOUT) && (tstate[i].test_state == 1)) {
             printf("TEST %s appears to be hung\n", tstate[i].test_name);
             printf("Terminating stress testing...\n");
@@ -108,7 +114,6 @@ void* watchdog(void* in)
         }
         else if ((n == 0) && (tstate[i].test_state == 0)) {
             printf("TEST %d, %s DONE\n", i, tstate[i].test_name);
-            sem_post(&go);
         }
         else if (n == -1) {
             perror("WATCHDOG sem_timedwait\n");
@@ -116,7 +121,9 @@ void* watchdog(void* in)
             watchdog_bailed = 1;
             pthread_exit(NULL);
         }
+    	// cout << "DEBUG: wd loop bottom before sem_post " << i << endl;
         sem_post(&go);
+    	// cout << "DEBUG: wd loop bottom after sem_post " << i << endl;
         i++;
     } while ((tests_done != 1) || (test_hung != 1));
 
@@ -634,7 +641,6 @@ int main(int argc, char *argv[])
 		printf("******** Running Stress Tests on Device: %d, Name: %s *********\n",dev,devprops[dev].name);
 
     		/* Wait for watchdog to signal test start */
-    		sem_wait(&go);
     		// printf("MAIN - GO!\n");
     		// wgst.dump_test_args(0);
 
@@ -697,11 +703,12 @@ int main(int argc, char *argv[])
         		// cout << "DEBUG:" << "signal wd" << endl;
         
         		/* Signal watchdog test started */
+			// cout << "DEBUG: main loop bottom before sem_post dev " << dev << " test " << t_num << endl;
         		sem_post(&wd);
+			// cout << "DEBUG: main loop bottom after sem_postdev dev " << dev << " test " << t_num << endl;
         		// cout << "DEBUG:" << "start test" << endl;
 
         		/* Run the test */
-			blas_opts.timing_loop = 10;
         		test_cublasLt(blas_opts);
 			printf("***** RETURN TEST %s On Device %d %s\n", wgst.stress_tests[t_num].test_name, dev, devprops[dev].name);
 			if (!test_ran) 
@@ -716,12 +723,16 @@ int main(int argc, char *argv[])
         		tstate[t_num].test_state = 0;
 	    		printf("TEST %s TIME: %d seconds\n",wgst.stress_tests[t_num].test_name,(int)(tstate[t_num].end_time - tstate[t_num].start_time));
             		/* Signal watchdog test finished*/
+			// cout << "DEBUG: main loop bottom done before sem_post dev " << dev << " test " << t_num << endl;
             		sem_post(&done);
+			// cout << "DEBUG: main loop bottom done after sem_post dev " << dev << " test " << t_num << endl;
         		if (t_num == (NUM_TESTS - 1))
             			tests_done = 1;
 
         		/* wait for watchdog to signal next next test */
+			// cout << "DEBUG: main loop bottom before sem_wait dev " << dev << " test " << t_num << endl;
         		sem_wait(&go);
+			// cout << "DEBUG: main loop after sem_wait dev " << dev << " test " << t_num << endl;
 		} // close number tests loop
   	} // close devices loop
   	return ret;
