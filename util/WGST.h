@@ -94,8 +94,8 @@ public:
             init_t4();
             break;
         case A100:
-            //init_a100();
-            init_a100B();
+            init_a100();
+            // init_a100B();
             break;
         }
     }
