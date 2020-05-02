@@ -1,0 +1,269 @@
+./wgst capturing GPU information...
+WATCHDOG starting, TIMEOUT: 600 seconds
+Detected 8 CUDA Capable device(s)
+Device 0: "A100-SXM4-40GB"
+Device 1: "A100-SXM4-40GB"
+Device 2: "A100-SXM4-40GB"
+Device 3: "A100-SXM4-40GB"
+Device 4: "A100-SXM4-40GB"
+Device 5: "A100-SXM4-40GB"
+Device 6: "A100-SXM4-40GB"
+Device 7: "A100-SXM4-40GB"
+Initilizing A100 based test suite
+GPU Memory: 41459908608, memgb: 40
+
+
+******** Running Stress Tests on Device: 0, Name: A100-SXM4-40GB *********
+***** STARTING TEST INT8 On Device 0 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 17.2854 sec,  Gflops = 343489.524 
+***** RETURN TEST INT8 On Device 0 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST INT8 TIME: 18 seconds
+***** STARTING TEST FP16 On Device 0 A100-SXM4-40GB
+TEST 0, INT8 DONE
+^^^^ CUDA : elapsed = 92.1934 sec,  Gflops = 217354.022 
+***** RETURN TEST FP16 On Device 0 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP16 TIME: 92 seconds
+***** STARTING TEST TF32 On Device 0 A100-SXM4-40GB
+TEST 1, FP16 DONE
+^^^^ CUDA : elapsed = 45.5725 sec,  Gflops = 130284.009 
+***** RETURN TEST TF32 On Device 0 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST TF32 TIME: 45 seconds
+***** STARTING TEST FP64 On Device 0 A100-SXM4-40GB
+TEST 2, TF32 DONE
+^^^^ CUDA : elapsed = 115.095 sec,  Gflops = 12896.619 
+***** RETURN TEST FP64 On Device 0 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP64 TIME: 116 seconds
+***** STARTING TEST FP32 On Device 0 A100-SXM4-40GB
+TEST 3, FP64 DONE
+^^^^ CUDA : elapsed = 287.696 sec,  Gflops = 17412.990 
+***** RETURN TEST FP32 On Device 0 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP32 TIME: 287 seconds
+******** Running Stress Tests on Device: 1, Name: A100-SXM4-40GB *********
+***** STARTING TEST INT8 On Device 1 A100-SXM4-40GB
+TEST 4, FP32 DONE
+^^^^ CUDA : elapsed = 17.2724 sec,  Gflops = 343748.155 
+***** RETURN TEST INT8 On Device 1 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST INT8 TIME: 18 seconds
+***** STARTING TEST FP16 On Device 1 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 92.3424 sec,  Gflops = 217003.220 
+***** RETURN TEST FP16 On Device 1 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP16 TIME: 93 seconds
+***** STARTING TEST TF32 On Device 1 A100-SXM4-40GB
+TEST 6, ¨ þ¢bU DONE
+^^^^ CUDA : elapsed = 45.7133 sec,  Gflops = 129882.568 
+***** RETURN TEST TF32 On Device 1 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST TF32 TIME: 45 seconds
+***** STARTING TEST FP64 On Device 1 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 115.332 sec,  Gflops = 12870.122 
+***** RETURN TEST FP64 On Device 1 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP64 TIME: 116 seconds
+***** STARTING TEST FP32 On Device 1 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 287.643 sec,  Gflops = 17416.214 
+***** RETURN TEST FP32 On Device 1 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP32 TIME: 287 seconds
+******** Running Stress Tests on Device: 2, Name: A100-SXM4-40GB *********
+***** STARTING TEST INT8 On Device 2 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 17.2903 sec,  Gflops = 343393.045 
+***** RETURN TEST INT8 On Device 2 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST INT8 TIME: 18 seconds
+***** STARTING TEST FP16 On Device 2 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 92.1957 sec,  Gflops = 217348.444 
+***** RETURN TEST FP16 On Device 2 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP16 TIME: 93 seconds
+***** STARTING TEST TF32 On Device 2 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 45.5716 sec,  Gflops = 130286.604 
+***** RETURN TEST TF32 On Device 2 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST TF32 TIME: 45 seconds
+***** STARTING TEST FP64 On Device 2 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 115.142 sec,  Gflops = 12891.389 
+***** RETURN TEST FP64 On Device 2 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP64 TIME: 115 seconds
+***** STARTING TEST FP32 On Device 2 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 287.718 sec,  Gflops = 17411.655 
+***** RETURN TEST FP32 On Device 2 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP32 TIME: 288 seconds
+******** Running Stress Tests on Device: 3, Name: A100-SXM4-40GB *********
+***** STARTING TEST INT8 On Device 3 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 17.2705 sec,  Gflops = 343786.604 
+***** RETURN TEST INT8 On Device 3 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST INT8 TIME: 18 seconds
+***** STARTING TEST FP16 On Device 3 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 92.3237 sec,  Gflops = 217047.223 
+***** RETURN TEST FP16 On Device 3 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP16 TIME: 92 seconds
+***** STARTING TEST TF32 On Device 3 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 45.689 sec,  Gflops = 129951.574 
+***** RETURN TEST TF32 On Device 3 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST TF32 TIME: 46 seconds
+***** STARTING TEST FP64 On Device 3 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 115.285 sec,  Gflops = 12875.365 
+***** RETURN TEST FP64 On Device 3 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP64 TIME: 115 seconds
+***** STARTING TEST FP32 On Device 3 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 287.592 sec,  Gflops = 17419.266 
+***** RETURN TEST FP32 On Device 3 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP32 TIME: 288 seconds
+******** Running Stress Tests on Device: 4, Name: A100-SXM4-40GB *********
+***** STARTING TEST INT8 On Device 4 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 17.2784 sec,  Gflops = 343628.942 
+***** RETURN TEST INT8 On Device 4 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST INT8 TIME: 18 seconds
+***** STARTING TEST FP16 On Device 4 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 92.489 sec,  Gflops = 216659.165 
+***** RETURN TEST FP16 On Device 4 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP16 TIME: 93 seconds
+***** STARTING TEST TF32 On Device 4 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 45.7341 sec,  Gflops = 129823.510 
+***** RETURN TEST TF32 On Device 4 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST TF32 TIME: 45 seconds
+***** STARTING TEST FP64 On Device 4 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 115.322 sec,  Gflops = 12871.257 
+***** RETURN TEST FP64 On Device 4 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP64 TIME: 116 seconds
+***** STARTING TEST FP32 On Device 4 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 287.689 sec,  Gflops = 17413.444 
+***** RETURN TEST FP32 On Device 4 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP32 TIME: 287 seconds
+******** Running Stress Tests on Device: 5, Name: A100-SXM4-40GB *********
+***** STARTING TEST INT8 On Device 5 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 17.2861 sec,  Gflops = 343475.487 
+***** RETURN TEST INT8 On Device 5 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST INT8 TIME: 19 seconds
+***** STARTING TEST FP16 On Device 5 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 92.1928 sec,  Gflops = 217355.303 
+***** RETURN TEST FP16 On Device 5 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP16 TIME: 92 seconds
+***** STARTING TEST TF32 On Device 5 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 45.5827 sec,  Gflops = 130254.868 
+***** RETURN TEST TF32 On Device 5 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST TF32 TIME: 45 seconds
+***** STARTING TEST FP64 On Device 5 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 115.122 sec,  Gflops = 12893.618 
+***** RETURN TEST FP64 On Device 5 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP64 TIME: 116 seconds
+***** STARTING TEST FP32 On Device 5 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 287.817 sec,  Gflops = 17405.654 
+***** RETURN TEST FP32 On Device 5 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP32 TIME: 287 seconds
+******** Running Stress Tests on Device: 6, Name: A100-SXM4-40GB *********
+***** STARTING TEST INT8 On Device 6 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 17.2848 sec,  Gflops = 343502.894 
+***** RETURN TEST INT8 On Device 6 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST INT8 TIME: 18 seconds
+***** STARTING TEST FP16 On Device 6 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 92.1472 sec,  Gflops = 217463.038 
+***** RETURN TEST FP16 On Device 6 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP16 TIME: 92 seconds
+***** STARTING TEST TF32 On Device 6 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 45.5707 sec,  Gflops = 130289.146 
+***** RETURN TEST TF32 On Device 6 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST TF32 TIME: 46 seconds
+***** STARTING TEST FP64 On Device 6 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 115.076 sec,  Gflops = 12898.832 
+***** RETURN TEST FP64 On Device 6 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP64 TIME: 115 seconds
+***** STARTING TEST FP32 On Device 6 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 287.675 sec,  Gflops = 17414.285 
+***** RETURN TEST FP32 On Device 6 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP32 TIME: 288 seconds
+******** Running Stress Tests on Device: 7, Name: A100-SXM4-40GB *********
+***** STARTING TEST INT8 On Device 7 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 17.2852 sec,  Gflops = 343494.710 
+***** RETURN TEST INT8 On Device 7 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST INT8 TIME: 18 seconds
+***** STARTING TEST FP16 On Device 7 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 92.0918 sec,  Gflops = 217593.821 
+***** RETURN TEST FP16 On Device 7 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP16 TIME: 92 seconds
+***** STARTING TEST TF32 On Device 7 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 45.5689 sec,  Gflops = 130294.282 
+***** RETURN TEST TF32 On Device 7 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST TF32 TIME: 46 seconds
+***** STARTING TEST FP64 On Device 7 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 115.008 sec,  Gflops = 12906.414 
+***** RETURN TEST FP64 On Device 7 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP64 TIME: 115 seconds
+***** STARTING TEST FP32 On Device 7 A100-SXM4-40GB
+^^^^ CUDA : elapsed = 287.633 sec,  Gflops = 17416.814 
+***** RETURN TEST FP32 On Device 7 A100-SXM4-40GB
+***** TEST PASSED ****
+
+TEST FP32 TIME: 287 seconds
