@@ -550,17 +550,22 @@ int main(int argc, char *argv[]) {
       }
 
       /* Initilize tests based on type of GPU; currently A100 or T4 based
-      ** default to A100 unless T4
+      ** default to T4 unless A100
       */
+      int memgb = 0;
       string gpu_name(devprops[0].name);
-      if (gpu_name == "Tesla T4") {
-          cout << "Initilizing T4 based test suite" << endl;
-          wgst = WGST(WGST::T4);
-      }
-      else {
+      if (gpu_name == "A100-SXM4-40GB") {
           cout << "Initilizing A100 based test suite" << endl;
           wgst = WGST(WGST::A100);
+	  memgb = 40;
       }
+      else {
+          cout << "Initilizing T4 based test suite" << endl;
+          wgst = WGST(WGST::T4);
+	  memgb = 16;
+      }
+
+      /*
       int memgb = 0;
       if (gpumem >= (39 * 1e9))
           memgb = 40;
@@ -573,6 +578,8 @@ int main(int argc, char *argv[]) {
           printf("EXITING\n");
           exit(0);
       }
+      */
+
 
       printf("GPU Memory: %lld, memgb: %d\n", (long long) gpumem, memgb);
       printf("\n\n");
