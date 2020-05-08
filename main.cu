@@ -587,7 +587,7 @@ int main(int argc, char *argv[]) {
 
   for (dev = 0; dev < deviceCount; dev++) {
 	CHECK(cudaSetDevice(dev));
-	printf("******** Running Stress Tests on Device: %d, Name: %s *********\n",dev,devprops[dev].name);
+	printf("Device %d: \"%s\", PCIe: %x\n", dev, devprops[dev].name,devprops[dev].pciBusID);
 
     // wgst.dump_test_args(0);
 
@@ -667,7 +667,10 @@ int main(int argc, char *argv[]) {
 		}
         tstate[t_num].end_time = time(NULL);
         tstate[t_num].test_state = 0;
-	    printf("TEST TIME: %d seconds\n",(int)(tstate[t_num].end_time - tstate[t_num].start_time));
+        printf("TEST TIME: %d seconds\n",(int)(tstate[t_num].end_time - tstate[t_num].start_time));
+        cudaDeviceSynchronize();
+        cudaDeviceReset();
+
         if (t_num == NUM_TESTS)
             tests_done = 1;
 
