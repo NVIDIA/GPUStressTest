@@ -223,7 +223,7 @@ usage ( void ){
   printf( "-tb= op(B) {0=no transpose, 1=transpose, 2=hermitian}\n");
 }
 
-void reset_blas_opts(BlasOpts &blas_opts)
+void reset_blas_opts(CommandLine& command_line, BlasOpts &blas_opts)
 {
   memset ((void *)&blas_opts, 0, sizeof(BlasOpts));  
   blas_opts.timing_only = false;
@@ -240,7 +240,12 @@ void reset_blas_opts(BlasOpts &blas_opts)
   blas_opts.m = DEFAULT_1024;
   blas_opts.n = DEFAULT_1024;
   blas_opts.k = DEFAULT_1024;
-  blas_opts.timing_loop = 100;  
+  if (command_line.check_cmd_line_flag("T")) {
+      command_line.get_cmd_line_argument("T", blas_opts.timing_loop);
+  }
+  else {
+      blas_opts.timing_loop = 100;
+  }
   blas_opts.m_orderingA = CUBLASLT_ORDER_COL;
   blas_opts.m_orderingB = CUBLASLT_ORDER_COL;
   blas_opts.m_orderingC = CUBLASLT_ORDER_COL;
@@ -265,7 +270,12 @@ parse_args(CommandLine &command_line, BlasOpts &blas_opts) {
   blas_opts.m = DEFAULT_1024;
   blas_opts.n = DEFAULT_1024;
   blas_opts.k = DEFAULT_1024;
-  blas_opts.timing_loop = 100;  
+  if (command_line.check_cmd_line_flag("T")) {
+      command_line.get_cmd_line_argument("T", blas_opts.timing_loop);
+  }
+  else {
+      blas_opts.timing_loop = 100;
+  }
   blas_opts.m_orderingA = CUBLASLT_ORDER_COL;
   blas_opts.m_orderingB = CUBLASLT_ORDER_COL;
   blas_opts.m_orderingC = CUBLASLT_ORDER_COL;

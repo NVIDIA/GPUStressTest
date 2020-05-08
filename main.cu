@@ -81,32 +81,31 @@ int watchdog_bailed = 0;
  */
 sem_t wd, go, done;
 
-void reset_blas_opts(BlasOpts &blas_opts);
+void reset_blas_opts(CommandLine& command_line, BlasOpts& blas_opts);
 
 void* watchdog(void* in)
 {
-    printf("WATCHDOG starting, TIMEOUT: %d seconds\n",TEST_WAIT_TIME); 
+    printf("WATCHDOG starting, TIMEOUT: %d seconds\n", TEST_WAIT_TIME);
+
     int i = 0, n = 0;
     struct timespec ts;
     
-    //cout << "DEBUG: wd before inital sem_post " << i << endl;
     sem_post(&go);
-    //cout << "DEBUG: wd after inital sem_post " << i << endl;
     do {
-	// cout << "DEBUG: wd loop top before sem_wait " << i << endl;
         sem_wait(&wd);
-	// cout << "DEBUG: wd loop top after sem_wait " << i << endl;
 
+#ifdef __linux__
+        clock_gettime(CLOCK_REALTIME, &ts)
+#else
         auto now = std::chrono::system_clock::now();
         auto secs = std::chrono::time_point_cast<std::chrono::seconds>(now);
         auto epoch_secs = secs.time_since_epoch();
         auto value_secs = std::chrono::duration_cast<std::chrono::seconds>(epoch_secs);
         ts.tv_sec = value_secs.count();
         ts.tv_nsec = 0L;
+#endif
         ts.tv_sec += TEST_WAIT_TIME;
-	// cout << "DEBUG: wd before sem_timedwait "<< i << endl;
         n = sem_timedwait(&done, &ts);
-	// cout << "DEBUG: wd after sem_timedwait " << i << endl;
         if ((n == -1) && (errno == ETIMEDOUT) && (tstate[i].test_state == 1)) {
             printf("TEST %s appears to be hung\n", tstate[i].test_name);
             printf("Terminating stress testing...\n");
@@ -121,9 +120,7 @@ void* watchdog(void* in)
             watchdog_bailed = 1;
             pthread_exit(NULL);
         }
-    	// cout << "DEBUG: wd loop bottom before sem_post " << i << endl;
         sem_post(&go);
-    	// cout << "DEBUG: wd loop bottom after sem_post " << i << endl;
         i++;
     } while ((tests_done != 1) || (test_hung != 1));
 
@@ -146,7 +143,7 @@ using cublas::CommandLine;
 template <typename T_IN, typename T_OUT, typename T_MATH, typename T_SCALE>
 static int 
 lt_gemm(cublasLtHandle_t ltHandle,
-        BlasOpts& blas_opts,
+        const BlasOpts& blas_opts,
         T_IN *A,
         T_IN *B,
         T_OUT *C,
@@ -159,36 +156,15 @@ lt_gemm(cublasLtHandle_t ltHandle,
     cublasLtMatmulDesc_t matmulDesc = NULL;
     const size_t workspaceSize = 1024 * 1024 * 4;
     void * workspace;
-
-    /*
-    int ldatransform = lda;
-    int ldbtransform = ldb;
-    int ldctransform = ldc;
-    blas_opts.m_orderingA = CUBLASLT_ORDER_COL;
-    blas_opts.m_orderingB = CUBLASLT_ORDER_COL;
-    blas_opts.m_orderingC = CUBLASLT_ORDER_COL;
-    */
-
     int ldatransform = blas_opts.m_orderingA == CUBLASLT_ORDER_COL ? lda : 32 * lda;
     int ldbtransform = 0;
     int ldctransform = blas_opts.m_orderingC == CUBLASLT_ORDER_COL ? ldc : 32 * ldc; 
 
-    /*
-     * DEBUG
-    if (blas_opts.m_orderingA == CUBLASLT_ORDER_COL) {
-    	    cout << "DEBUG: m_orderingA == CUBLASLT_ORDER_COL" << endl;
-    } else {
-    	    cout << "DEBUG: m_orderingA " << blas_opts.m_orderingA << endl;
-    }
-    */
-
     switch(blas_opts.m_orderingB) {
       case CUBLASLT_ORDER_COL32_2R_4R4: // for ampere  
-	    // cout << "DEBUG: m_orderingB == CUBLASLT_ORDER_COL32_2R_4R4 == " << blas_opts.m_orderingB << endl;
         ldbtransform = 32 * roundoff(ldb, 32);    
         break;
       case CUBLASLT_ORDER_COL:
-	 // cout << "DEBUG: m_orderingB  CUBLASLT_ORDER_COL" << endl;
         ldbtransform = ldb;  
         break;
       default:
@@ -196,19 +172,10 @@ lt_gemm(cublasLtHandle_t ltHandle,
         break;
     }
 
-    /* DEBUG
-    if (blas_opts.m_orderingC == CUBLASLT_ORDER_COL) {
-	    cout << "DEBUG: m_orderingC == CUBLASLT_ORDER_COL" << endl;
-    } else {
-	    cout << "DEBUG: m_orderingC " << blas_opts.m_orderingC << endl;
-    }
-    */ 
-
-    // cout << "DEBUG: alloc 1" << endl;
-
     cublas::cuda_check_error(cudaMalloc(&workspace, workspaceSize), "cudaMalloc for workspace failed");
 
     cublasLtMatrixLayout_t AtransformDesc = NULL, BtransformDesc = NULL, CtransformDesc = NULL;
+
    
     cublas::cublas_check_error(cublasLtMatmulDescCreate(&matmulDesc, blas_opts.compute_type, blas_opts.scale_type),
                                "create MatmulDesc failed");
@@ -253,18 +220,17 @@ lt_gemm(cublasLtHandle_t ltHandle,
     char ta = operation_to_char(blas_opts.transa);
     char tb = operation_to_char(blas_opts.transb);
 
-    // printf ("#### args: ta=%c tb=%c m=%d n=%d k=%d", ta, tb, blas_opts.m, blas_opts.n, blas_opts.k);
+    printf ("#### args: ta=%c tb=%c m=%d n=%d k=%d", ta, tb, blas_opts.m, blas_opts.n, blas_opts.k);
     //printCuType( " alpha =", alpha);
     //printCuType( " beta=", beta);
-    // printf("\n");
-    // printf("#### args: lda=%d ldb=%d ldc=%d loop=%d\n", ldatransform, ldbtransform, ldctransform, blas_opts.timing_loop);   
-    // printf("#### input_type %d output_type %d scale_type %d math_type %d compute_type %d\n",
-    //    blas_opts.input_type, blas_opts.output_type, blas_opts.scale_type, blas_opts.math_type, blas_opts.compute_type);
+    printf("\n");
+    printf("#### args: lda=%d ldb=%d ldc=%d loop=%d\n", ldatransform, ldbtransform, ldctransform, blas_opts.timing_loop);   
+    printf("#### input_type %d output_type %d scale_type %d math_type %d compute_type %d\n",
+        blas_opts.input_type, blas_opts.output_type, blas_opts.scale_type, blas_opts.math_type, blas_opts.compute_type);
 
     using namespace std::chrono;
     high_resolution_clock::time_point start = high_resolution_clock::now();
     for (int i = 0; i < blas_opts.timing_loop; ++i) {
-	// cout << "DEBUG: call matmul" <<endl;
       cublas::cublas_check_error(cublasLtMatmul(ltHandle,
                                                 matmulDesc,
                                                 &alpha,
@@ -327,7 +293,8 @@ lt_gemm(cublasLtHandle_t ltHandle,
 
 template <typename T_IN, typename T_OUT, typename T_MATH, typename T_SCALE>
 static void
-test_engine(BlasOpts& blas_opts) {
+test_engine(const BlasOpts& blas_opts) {
+  /* printf("testing cublasLt\n"); */
   try {
     T_IN *d_A = nullptr;
     T_IN *d_B = nullptr;      
@@ -390,16 +357,8 @@ test_engine(BlasOpts& blas_opts) {
     matrixSizeB = (size_t)rowsB * colsB;
     matrixSizeC = (size_t)rowsC * colsC;
 
-    // DEBUG
-    // cout << "DEBUG: rowsA " << rowsA << endl;
-    // cout << "DEBUG: rowsB " << rowsB << endl;
-    // cout << "DEBUG: rowsC " << rowsC << endl;
-
-    // cout << "DEBUG: alloc 2 " << matrixSizeA << endl;
     d_A = cublas::device_memory::allocate<T_IN>(matrixSizeA);
-    // cout << "DEBUG: alloc 3 " << matrixSizeB << endl;
     d_B = cublas::device_memory::allocate<T_IN>(matrixSizeB);
-    // cout << "DEBUG: alloc 4 " << matrixSizeC << endl;
     d_C = cublas::device_memory::allocate<T_OUT>(matrixSizeC);
     
     //cublas::cuda_check_error(cudaMemset(d_C, 0, matrixSizeC * sizeof(h_C[0])), "cudaMemset error");
@@ -417,6 +376,15 @@ test_engine(BlasOpts& blas_opts) {
     cublas::device_memory::free(d_B);
     cublas::device_memory::free(d_C);
     cublas::cublas_check_error(cublasLtDestroy(ltHandle), "destroy ltHandle failed");
+
+/*
+    if (has_error) {
+      printf("testing cublasLt fail\n");    
+      exit(-1);
+    } else {
+      printf("testing cublasLt pass\n");
+    }
+*/
 
   } catch (cublas::cuda_exception &e) {
     cout << e << endl;  
@@ -439,64 +407,51 @@ test_cublasLt(BlasOpts& blas_opts) {
   try{    
     switch(blas_opts.math_type) {
       case CUDA_R_32F: //sss A,B : FP32 ->  C FP32
-	      // cout << "DEBUG: CUDA_R_32F ";
         if ((blas_opts.input_type == CUDA_R_32F) &&
             (blas_opts.output_type == CUDA_R_32F) &&
             (blas_opts.scale_type == CUDA_R_32F)) {
-	      // cout << "DEBUG: <float, float, float, float>" << endl;
           test_engine<float, float, float, float>(blas_opts);
         } //hss A,B FP16 ->  C FP32 
         if ((blas_opts.input_type == CUDA_R_16F) &&
             (blas_opts.output_type == CUDA_R_32F) &&
             (blas_opts.scale_type == CUDA_R_32F)) {
-	      // cout << "DEBUG:  __half, float, float, float" << endl;
           test_engine<__half, float, float, float>(blas_opts);
         } // hsh A,B FP16 ->  C FP16
         if ((blas_opts.input_type == CUDA_R_16F) &&
             (blas_opts.output_type == CUDA_R_16F) &&
             (blas_opts.scale_type == CUDA_R_32F)) {
-	      // cout << "DEBUG: __half, __half, float, float" << endl;
           test_engine<__half, __half, float, float>(blas_opts);
         } 
         break;
       case CUDA_C_32F: //ccc
-	      // cout << "DEBUG: CUDA_C_32F ";
         if ((blas_opts.input_type == CUDA_C_32F) &&
             (blas_opts.output_type == CUDA_C_32F) &&
             (blas_opts.scale_type == CUDA_C_32F)) {
-	      // cout << "DEBUG: <cuComplex, cuComplex, cuComplex, cuComplex>" << endl;
           test_engine<cuComplex, cuComplex, cuComplex, cuComplex>(blas_opts);
         } 
         break; 
       case CUDA_R_64F: //ddd A,B : FP64 ->  C FP64
-	      // cout << "DEBUG: CUDA_R_64F ";
         if ((blas_opts.input_type == CUDA_R_64F) &&
             (blas_opts.output_type == CUDA_R_64F) &&
             (blas_opts.scale_type == CUDA_R_64F)) {
-	      // cout << "DEBUG: <double, double, double, double>" << endl;
           test_engine<double, double, double, double>(blas_opts);
         } 
         break;
       case CUDA_C_64F: // zzz 
-	      // cout << "DEBUG: CUDA_C_64F ";
         if ((blas_opts.input_type == CUDA_C_64F) &&
             (blas_opts.output_type == CUDA_C_64F) &&
             (blas_opts.scale_type == CUDA_C_64F)) {
-	      // cout << "DEBUG: <cuDoubleComplex, cuDoubleComplex, cuDoubleComplex, cuDoubleComplex> " << endl;
           test_engine<cuDoubleComplex, cuDoubleComplex, cuDoubleComplex, cuDoubleComplex>(blas_opts);
         }  
         break;
       case CUDA_R_16F: // hhh   
-	      // cout << "DEBUG: CUDA_R_16F ";
         if ((blas_opts.input_type == CUDA_R_16F) &&
             (blas_opts.output_type == CUDA_R_16F) &&
             (blas_opts.scale_type == CUDA_R_16F)) {
-	      // cout << "DEBUG: <__half, __half, __half,__half> " << endl;
           test_engine<__half, __half, __half,__half>(blas_opts);
         } 
         break;
       case CUDA_R_32I: {//bisb_imma
-	      // cout << "DEBUG: CUDA_R_32I ";
           int device_version = 0;
           cublas::cuda_check_error(get_device_version(device_version), "get device version failed");          
           if (device_version < 750) {
@@ -512,14 +467,12 @@ test_cublasLt(BlasOpts& blas_opts) {
           if ((blas_opts.input_type == CUDA_R_8I) &&
               (blas_opts.output_type == CUDA_R_8I) &&
               (blas_opts.scale_type == CUDA_R_32F)) {
-	      // cout << "DEBUG: <int8_t, int8_t, int, float> " << endl;
               
             test_engine<int8_t, int8_t, int, float>(blas_opts);
           } //bii_imma
           if ((blas_opts.input_type == CUDA_R_8I) &&
               (blas_opts.output_type == CUDA_R_32I) &&
               (blas_opts.scale_type == CUDA_R_32I)) {
-	      // cout << "DEBUG: <int8_t, int, int, int> " << endl;
             test_engine<int8_t, int, int, int>(blas_opts);
           } 
         }
@@ -541,199 +494,187 @@ test_cublasLt(BlasOpts& blas_opts) {
 
 /* ------------------------------------------------------------------------------------------------------------------------------- */
 
-int main(int argc, char *argv[]) 
-{
-  	int ret = 0;
-  	pthread_t wd_thread;
-  	pthread_attr_t attr;
-  	WGST wgst;
+int main(int argc, char *argv[]) {
+  int ret = 0;
+  pthread_t wd_thread;
+  pthread_attr_t attr;
+  WGST wgst;
 
-  	sem_init(&wd, 0, 0);
-  	sem_init(&go, 0, 0);
-  	sem_init(&done, 0, 0);
-  	void(*watchdog(void*));
+  sem_init(&wd, 0, 0);
+  sem_init(&go, 0, 0);
+  sem_init(&done, 0, 0);
+  void(*watchdog(void*));
 
-  	if (pthread_attr_init(&attr)) {
-    		perror("pthread_attr_init - watchdog");
-    		exit(-1);
-  	}
+  if (pthread_attr_init(&attr)) {
+    perror("pthread_attr_init - watchdog");
+    exit(-1);
+  }
 
-  	if (ret = pthread_create(&wd_thread, &attr, watchdog, (void*)NULL) != 0) {
-      		perror("pthread create - watchdog");
-      		exit(-1);
-  	}
+  if (ret = pthread_create(&wd_thread, &attr, watchdog, (void*)NULL) != 0) {
+      perror("pthread create - watchdog");
+      exit(-1);
+  }
 
-  	printf("%s capturing GPU information...\n", argv[0]);
+  printf("%s capturing GPU information...\n", argv[0]);
 
-  	int deviceCount = 0;
-  	cudaGetDeviceCount(&deviceCount);
+  int deviceCount = 0;
+  cudaGetDeviceCount(&deviceCount);
 
-  	if (deviceCount == 0) {
-        	printf("There are no available device(s) that support CUDA\n");
-		printf("Exiting...\n");
-		exit(-1);
-  	} else {
-        	printf("Detected %d CUDA Capable device(s)\n", deviceCount);
-  	}
+  if (deviceCount == 0) {
+        printf("There are no available device(s) that support CUDA\n");
+	printf("Exiting...\n");
+	exit(-1);
+  } else {
+        printf("Detected %d CUDA Capable device(s)\n", deviceCount);
+  }
 
-  	// CommandLine command_line(argc, argv);
-  	// parse_args(command_line, blas_opts);
-  	BlasOpts blas_opts;
-	reset_blas_opts(blas_opts);
+  CommandLine command_line(argc, argv);
+  BlasOpts blas_opts;
+  parse_args(command_line, blas_opts);
+  reset_blas_opts(command_line, blas_opts);
 
-  	/* GPU detection and test initilization*/
-      	int dev;
-      	size_t gpumem = 0;
-      	cudaDeviceProp devprops[MAX_NUM_GPUS] {};
-      	for (dev = 0; dev < deviceCount; dev++) {
-          	CHECK(cudaSetDevice(dev));
-          	CHECK(cudaGetDeviceProperties(&devprops[dev], dev));
-          	printf("Device %d: \"%s\"\n", dev, devprops[dev].name);
-          	if (dev == 0)
-              		gpumem = devprops[dev].totalGlobalMem;
-              	if ((dev > 0) && (gpumem != devprops[dev - 1].totalGlobalMem)) {
-                	printf("Detected different GPU memory sizes\n");
-                  	printf("gpumem: %ld, GPU %d %ld\n", gpumem, (dev - 1), devprops[dev - 1].totalGlobalMem);
-                  	printf("EXITING...\n");
-                  	exit(0);
-              	}
-      	}
+  /* GPU detection and test initilization*/
+      int dev;
+      size_t gpumem = 0LL;
+      cudaDeviceProp devprops[MAX_NUM_GPUS] {};
+      for (dev = 0; dev < deviceCount; dev++) {
+          CHECK(cudaSetDevice(dev));
+          CHECK(cudaGetDeviceProperties(&devprops[dev], dev));
+          printf("Device %d: \"%s\"\n", dev, devprops[dev].name);
+          if (dev == 0)
+              gpumem = devprops[dev].totalGlobalMem;
+          else {
+              if (gpumem != devprops[dev - 1].totalGlobalMem) {
+                  printf("Detected different GPU memory sizes\n");
+                  printf("gpumem: %lld, GPU %d %lld\n", gpumem, (dev - 1), devprops[dev - 1].totalGlobalMem);
+                  printf("EXITING...\n");
+                  exit(0);
+              }
+          }
+      }
 
-	/* 
-	 ** Initilize tests based on type of GPU; currently A100 or T4 based
-      	 ** default to A100 unless T4
-      	*/
-      	string gpu_name(devprops[0].name);
-      	if (gpu_name == "Tesla T4") {
-          	cout << "Initilizing T4 based test suite" << endl;
-          	wgst = WGST(WGST::T4);
-      	} else {
-          	cout << "Initilizing A100 based test suite" << endl;
-          	wgst = WGST(WGST::A100);
-      	}
-      	int memgb = 0;
-      	if (gpumem >= (39 * 1e9))
-          	memgb = 40;
-      	else if (gpumem >= (31 * 1e9))
-          	memgb = 32;
-      	else if (gpumem >= (15 * 1e9))
-          	memgb = 16;
-      	else {
-          	printf("Unexpected GPU memory size: %ld\n", gpumem);
-          	printf("EXITING\n");
-          	exit(0);
-      	}
+      /* Initilize tests based on type of GPU; currently A100 or T4 based
+      ** default to A100 unless T4
+      */
+      string gpu_name(devprops[0].name);
+      if (gpu_name == "Tesla T4") {
+          cout << "Initilizing T4 based test suite" << endl;
+          wgst = WGST(WGST::T4);
+      }
+      else {
+          cout << "Initilizing A100 based test suite" << endl;
+          wgst = WGST(WGST::A100);
+      }
+      int memgb = 0;
+      if (gpumem >= (39 * 1e9))
+          memgb = 40;
+      else if (gpumem >= (31 * 1e9))
+          memgb = 32;
+      else if (gpumem >= (15 * 1e9))
+          memgb = 16;
+      else {
+          printf("Unexpected GPU memory size: %lld\n", gpumem);
+          printf("EXITING\n");
+          exit(0);
+      }
 
-      	printf("GPU Memory: %ld, memgb: %d\n", gpumem, memgb);
-      	printf("\n\n");
-
-      	//cout << "DEBUG:" << "1" << endl;
-
-      	/* Debug 
-      	cout << "DEBUG:" << "before extern hello_world " << endl;
-      	extern void hello_world(BlasOpts & blas_opts, const string & in_math_scale_out_type);
-      	cout << "DEBUG:" << "after extern hello_world " << endl;
-       	*/
+      printf("GPU Memory: %lld, memgb: %d\n", gpumem, memgb);
+      printf("\n\n");
 
 
-  	for (dev = 0; dev < deviceCount; dev++) {
-		CHECK(cudaSetDevice(dev));
-		printf("******** Running Stress Tests on Device: %d, Name: %s *********\n",dev,devprops[dev].name);
+  for (dev = 0; dev < deviceCount; dev++) {
+	CHECK(cudaSetDevice(dev));
+	printf("******** Running Stress Tests on Device: %d, Name: %s *********\n",dev,devprops[dev].name);
 
-    		/* Wait for watchdog to signal test start */
-    		// printf("MAIN - GO!\n");
-    		// wgst.dump_test_args(0);
+    // wgst.dump_test_args(0);
 
-		for (int t_num = 0; t_num  < NUM_TESTS; t_num++) {
+	for (int t_num = 0; t_num  < NUM_TESTS; t_num++) {
 
-       			/* Abort if watchdog has died */
-        		if (watchdog_bailed) {
-            			printf("WATCHDOG Thread exited...\n");
-            			printf("GPUstress terminating\n");
-            			exit(-1);
-        		}
-			reset_blas_opts(blas_opts);
-        		/* Debug
-        		wgst.dump_test_args(tix);
-        		hello_world(blas_opts, wgst.stress_tests[0].P_arg);
-        		*/
+       /* Abort if watchdog has died */
+        if (watchdog_bailed) {
+            printf("WATCHDOG Thread exited...\n");
+            printf("GPUstress terminating\n");
+            exit(-1);
+        }
+        reset_blas_opts(command_line, blas_opts);
+        /* Debug
+        wgst.dump_test_args(tix);
+        hello_world(blas_opts, wgst.stress_tests[0].P_arg);
+        */
 
-        		bool p_parse = parse_in_math_scale_out_type(blas_opts, wgst.stress_tests[t_num].P_arg);
-        		// cout << "DEBUG:" << "after parse" << endl;
-			if (!p_parse) {
-				printf("p_parse failed\n");
-				exit(-1);
-			}
-        		// cout << "DEBUG:" << "set opts" << endl;
-			if (memgb == 16) {
-		    		blas_opts.m = wgst.stress_tests[t_num].m_arg;
-		    		blas_opts.n = wgst.stress_tests[t_num].n_arg;
-		    		blas_opts.k = wgst.stress_tests[t_num].k_arg;
-		    		blas_opts.m_opt = true;
-		    		blas_opts.n_opt = true;
-		    		blas_opts.k_opt = true;
-			} else {
+        /* Parse command line optioms */
+        bool p_parse = parse_in_math_scale_out_type(blas_opts, wgst.stress_tests[t_num].P_arg);
+        // cout << "DEBUG:" << "after parse" << endl;
+		if (!p_parse) {
+			printf("p_parse failed\n");
+			exit(-1);
+		}
+        // cout << "DEBUG:" << "set opts" << endl;
+		if (memgb == 16) {
+		    blas_opts.m = wgst.stress_tests[t_num].m_arg;
+		    blas_opts.n = wgst.stress_tests[t_num].n_arg;
+		    blas_opts.k = wgst.stress_tests[t_num].k_arg;
+            blas_opts.m_opt = true;
+            blas_opts.n_opt = true;
+            blas_opts.k_opt = true;
+		} else {
 		    // For right now, use the same values for 32GB and 40GB
-		    		blas_opts.m = (wgst.stress_tests[t_num].m_arg);
-		    		blas_opts.n = (wgst.stress_tests[t_num].n_arg);
-		    		blas_opts.k = (wgst.stress_tests[t_num].k_arg);
-		    		blas_opts.m_opt = true;
-		    		blas_opts.n_opt = true;
-		    		blas_opts.k_opt = true;
-			}
-			if (wgst.stress_tests[t_num].ta_arg == 1)
-				blas_opts.transa_opt = true;
-			else {
-				blas_opts.transa_opt =false;
-				blas_opts.transa = (cublasOperation_t)0;
-			}
-			if (wgst.stress_tests[t_num].tb_arg == 1)
-				blas_opts.transb_opt = true;
-			else {
-				blas_opts.transb_opt =false;
-				blas_opts.transb = (cublasOperation_t)0;
-			}
-			blas_opts.beta = 0.0f;
-			blas_opts.beta_opt = true;
-
-			printf("***** STARTING TEST %s On Device %d %s\n", wgst.stress_tests[t_num].test_name, dev, devprops[dev].name);
-        		tstate[t_num].test_name = wgst.stress_tests[t_num].test_name;
-        		tstate[t_num].test_state = 1;
-        		tstate[t_num].start_time = time(NULL);
-        		// cout << "DEBUG:" << "signal wd" << endl;
+		    blas_opts.m = (wgst.stress_tests[t_num].m_arg * 2);
+		    blas_opts.n = (wgst.stress_tests[t_num].n_arg * 2);
+		    blas_opts.k = (wgst.stress_tests[t_num].k_arg * 2);
+            blas_opts.m_opt = true;
+            blas_opts.n_opt = true;
+            blas_opts.k_opt = true;
+		}
+        if (wgst.stress_tests[t_num].ta_arg == 1)
+            blas_opts.transa_opt = true;
+        else {
+            blas_opts.transa_opt = false;
+            blas_opts.transa = (cublasOperation_t)0;
+        }
+        if (wgst.stress_tests[t_num].tb_arg == 1)
+            blas_opts.transb_opt = true;
+        else {
+            blas_opts.transb_opt = false;
+            blas_opts.transb = (cublasOperation_t)0;
+        }
+        blas_opts.beta = 0.0f;
+        blas_opts.beta_opt = true;
         
-        		/* Signal watchdog test started */
-			// cout << "DEBUG: main loop bottom before sem_post dev " << dev << " test " << t_num << endl;
-        		sem_post(&wd);
-			// cout << "DEBUG: main loop bottom after sem_postdev dev " << dev << " test " << t_num << endl;
-        		// cout << "DEBUG:" << "start test" << endl;
+        printf("***** STARTING TEST %d: %s On Device %d %s\n", t_num, wgst.stress_tests[t_num].test_name, dev, devprops[dev].name);
+        tstate[t_num].test_name = wgst.stress_tests[t_num].test_name;
+        tstate[t_num].test_state = 1;
+        tstate[t_num].start_time = time(NULL);
+        // cout << "DEBUG:" << "signal wd" << endl;
+        
+        /* Signal watchdog test started */
+        sem_post(&wd);
+        // cout << "DEBUG:" << "start test" << endl;
 
-        		/* Run the test */
-        		test_cublasLt(blas_opts);
-			printf("***** RETURN TEST %s On Device %d %s\n", wgst.stress_tests[t_num].test_name, dev, devprops[dev].name);
-			if (!test_ran) 
-				printf("***** TEST DID NOT EXECUTE *****\n\n");
-			else {
-				if (has_error == true)
-					printf("***** TEST FAILED ****\n\n");
-				else
-					printf("***** TEST PASSED ****\n\n");
-			}
-        		tstate[t_num].end_time = time(NULL);
-        		tstate[t_num].test_state = 0;
-	    		printf("TEST %s TIME: %d seconds\n",wgst.stress_tests[t_num].test_name,(int)(tstate[t_num].end_time - tstate[t_num].start_time));
-            		/* Signal watchdog test finished*/
-			// cout << "DEBUG: main loop bottom done before sem_post dev " << dev << " test " << t_num << endl;
-            		sem_post(&done);
-			// cout << "DEBUG: main loop bottom done after sem_post dev " << dev << " test " << t_num << endl;
-        		if (t_num == (NUM_TESTS - 1))
-            			tests_done = 1;
+        /* Run the test */
+        test_cublasLt(blas_opts);
+		printf("***** TEST %s On Device %d %s\n", wgst.stress_tests[t_num].test_name, dev, devprops[dev].name);
+		if (!test_ran) 
+			printf("***** TEST DID NOT EXECUTE *****\n\n");
+		else {
+			if (has_error == true)
+				printf("***** TEST FAILED ****\n\n");
+			else
+				printf("***** TEST PASSED ****\n\n");
+		}
+        tstate[t_num].end_time = time(NULL);
+        tstate[t_num].test_state = 0;
+	    printf("TEST TIME: %d seconds\n",(int)(tstate[t_num].end_time - tstate[t_num].start_time));
+        if (t_num == NUM_TESTS)
+            tests_done = 1;
 
-        		/* wait for watchdog to signal next next test */
-			// cout << "DEBUG: main loop bottom before sem_wait dev " << dev << " test " << t_num << endl;
-        		sem_wait(&go);
-			// cout << "DEBUG: main loop after sem_wait dev " << dev << " test " << t_num << endl;
-		} // close number tests loop
-  	} // close devices loop
-  	return ret;
+            /* Signal watchdog test finished*/
+            sem_post(&done);
+
+        /* wait for watchdog to signal next next test */
+        sem_wait(&go);
+	}
+  }
+  
+  return ret;
 }

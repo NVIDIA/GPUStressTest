@@ -264,9 +264,9 @@ private:
         stress_tests[4].test_name = "FP32";
         stress_tests[4].test_state = 0;
         stress_tests[4].P_arg = "hss";
-        stress_tests[4].m_arg = 36864;
-        stress_tests[4].n_arg = 27648;
-        stress_tests[4].k_arg = 98304;
+        stress_tests[1].m_arg = 18432;
+        stress_tests[1].n_arg = 13824;
+        stress_tests[1].k_arg = 49170;
         stress_tests[4].ta_arg = 0;
         stress_tests[4].tb_arg = 1;
         stress_tests[4].B_arg = 0;
