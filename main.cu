@@ -94,16 +94,12 @@ void* watchdog(void* in)
     do {
         sem_wait(&wd);
 
-#ifdef __linux__
-        clock_gettime(CLOCK_REALTIME, &ts)
-#else
         auto now = std::chrono::system_clock::now();
         auto secs = std::chrono::time_point_cast<std::chrono::seconds>(now);
         auto epoch_secs = secs.time_since_epoch();
         auto value_secs = std::chrono::duration_cast<std::chrono::seconds>(epoch_secs);
         ts.tv_sec = value_secs.count();
         ts.tv_nsec = 0L;
-#endif
         ts.tv_sec += TEST_WAIT_TIME;
         n = sem_timedwait(&done, &ts);
         if ((n == -1) && (errno == ETIMEDOUT) && (tstate[i].test_state == 1)) {
@@ -546,7 +542,7 @@ int main(int argc, char *argv[]) {
           else {
               if (gpumem != devprops[dev - 1].totalGlobalMem) {
                   printf("Detected different GPU memory sizes\n");
-                  printf("gpumem: %lld, GPU %d %lld\n", gpumem, (dev - 1), devprops[dev - 1].totalGlobalMem);
+                  printf("gpumem: %lld, GPU %d %lld\n", (long long) gpumem, (dev - 1), (long long) devprops[dev - 1].totalGlobalMem);
                   printf("EXITING...\n");
                   exit(0);
               }
@@ -573,12 +569,12 @@ int main(int argc, char *argv[]) {
       else if (gpumem >= (15 * 1e9))
           memgb = 16;
       else {
-          printf("Unexpected GPU memory size: %lld\n", gpumem);
+          printf("Unexpected GPU memory size: %lld\n", (long long) gpumem);
           printf("EXITING\n");
           exit(0);
       }
 
-      printf("GPU Memory: %lld, memgb: %d\n", gpumem, memgb);
+      printf("GPU Memory: %lld, memgb: %d\n", (long long) gpumem, memgb);
       printf("\n\n");
 
 
