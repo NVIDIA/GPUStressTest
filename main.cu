@@ -108,7 +108,7 @@ void* watchdog(void* in)
             exit(-1);
         }
         else if ((n == 0) && (tstate[i].test_state == 0)) {
-            printf("TEST %d, %s DONE\n", i, tstate[i].test_name);
+            printf("TEST %d, %s DONE\n", i % NUM_TESTS, tstate[i % NUM_TESTS].test_name);
         }
         else if (n == -1) {
             perror("WATCHDOG sem_timedwait\n");
@@ -216,14 +216,15 @@ lt_gemm(cublasLtHandle_t ltHandle,
     char ta = operation_to_char(blas_opts.transa);
     char tb = operation_to_char(blas_opts.transb);
 
+    /*
     printf ("#### args: ta=%c tb=%c m=%d n=%d k=%d", ta, tb, blas_opts.m, blas_opts.n, blas_opts.k);
-    //printCuType( " alpha =", alpha);
-    //printCuType( " beta=", beta);
+    printCuType( " alpha =", alpha);
+    printCuType( " beta=", beta);
     printf("\n");
     printf("#### args: lda=%d ldb=%d ldc=%d loop=%d\n", ldatransform, ldbtransform, ldctransform, blas_opts.timing_loop);   
     printf("#### input_type %d output_type %d scale_type %d math_type %d compute_type %d\n",
         blas_opts.input_type, blas_opts.output_type, blas_opts.scale_type, blas_opts.math_type, blas_opts.compute_type);
-
+    */
     using namespace std::chrono;
     high_resolution_clock::time_point start = high_resolution_clock::now();
     for (int i = 0; i < blas_opts.timing_loop; ++i) {
@@ -259,13 +260,15 @@ lt_gemm(cublasLtHandle_t ltHandle,
     double  TheoreticalBandwidth =
                 sizeof(T_IN) * ((double)blas_opts.m * (double)blas_opts.k + (double)blas_opts.k * (double)blas_opts.n) +
                 sizeof(T_OUT) * (double)blas_opts.m * (double)blas_opts.n;    
-    // if (blas_opts.timing_only) {
-      // fprintf (stdout, "!!!! GPU timing only. CPU reference not run.\n");
+    /*
+    if (blas_opts.timing_only) {
+      fprintf (stdout, "!!!! GPU timing only. CPU reference not run.\n");
       double cudaGflops = blas_opts.timing_loop * (1e-9*TheoreticalFlops)/(time_span.count());
       double cudaBandwidth = blas_opts.timing_loop *(1e-9*TheoreticalBandwidth)/(time_span.count());
       cublasPrintPerf(false, time_span.count(), cudaGflops);//, cudaBandwidth );    
-      // printGemmSOL<T_MATH>(0/*mathMode*/, time_span.count(), blas_opts.timing_loop, blas_opts.m, blas_opts.n, blas_opts.k, (int)(blas_opts.algo));
-    // }
+      printGemmSOL<T_MATH>(0, time_span.count(), blas_opts.timing_loop, blas_opts.m, blas_opts.n, blas_opts.k, (int)(blas_opts.algo));
+    }
+    */
 
     // descriptors are no longer needed as all GPU work was already enqueued
     if (CtransformDesc) cublas::cublas_check_error(cublasLtMatrixLayoutDestroy(CtransformDesc), "destory CtransformDesc failed");
@@ -584,7 +587,6 @@ int main(int argc, char *argv[]) {
       printf("GPU Memory: %lld, memgb: %d\n", (long long) gpumem, memgb);
       printf("\n\n");
 
-
   for (dev = 0; dev < deviceCount; dev++) {
 	CHECK(cudaSetDevice(dev));
 	printf("Device %d: \"%s\", PCIe: %x\n", dev, devprops[dev].name,devprops[dev].pciBusID);
@@ -613,22 +615,14 @@ int main(int argc, char *argv[]) {
 			exit(-1);
 		}
         // cout << "DEBUG:" << "set opts" << endl;
-		if (memgb == 16) {
-		    blas_opts.m = wgst.stress_tests[t_num].m_arg;
-		    blas_opts.n = wgst.stress_tests[t_num].n_arg;
-		    blas_opts.k = wgst.stress_tests[t_num].k_arg;
-            blas_opts.m_opt = true;
-            blas_opts.n_opt = true;
-            blas_opts.k_opt = true;
-		} else {
-		    // For right now, use the same values for 32GB and 40GB
-		    blas_opts.m = (wgst.stress_tests[t_num].m_arg * 2);
-		    blas_opts.n = (wgst.stress_tests[t_num].n_arg * 2);
-		    blas_opts.k = (wgst.stress_tests[t_num].k_arg * 2);
-            blas_opts.m_opt = true;
-            blas_opts.n_opt = true;
-            blas_opts.k_opt = true;
-		}
+
+		blas_opts.m = wgst.stress_tests[t_num].m_arg;
+		blas_opts.n = wgst.stress_tests[t_num].n_arg;
+		blas_opts.k = wgst.stress_tests[t_num].k_arg;
+        blas_opts.m_opt = true;
+        blas_opts.n_opt = true;
+        blas_opts.k_opt = true;
+
         if (wgst.stress_tests[t_num].ta_arg == 1)
             blas_opts.transa_opt = true;
         else {
