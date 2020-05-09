@@ -81,9 +81,12 @@ int watchdog_bailed = 0;
  */
 sem_t wd, go, done;
 
+void reset_blas_opts(CommandLine& command_line, BlasOpts& blas_opts);
+
 void* watchdog(void* in)
 {
-    printf("WATCHDOG starting....\n"); 
+    printf("WATCHDOG starting, TIMEOUT: %d seconds\n", TEST_WAIT_TIME);
+
     int i = 0, n = 0;
     struct timespec ts;
     
@@ -91,16 +94,12 @@ void* watchdog(void* in)
     do {
         sem_wait(&wd);
 
-#ifdef linux
-        clock_gettime(CLOCK_REALTIME, &ts)
-#else
         auto now = std::chrono::system_clock::now();
         auto secs = std::chrono::time_point_cast<std::chrono::seconds>(now);
         auto epoch_secs = secs.time_since_epoch();
         auto value_secs = std::chrono::duration_cast<std::chrono::seconds>(epoch_secs);
         ts.tv_sec = value_secs.count();
         ts.tv_nsec = 0L;
-#endif
         ts.tv_sec += TEST_WAIT_TIME;
         n = sem_timedwait(&done, &ts);
         if ((n == -1) && (errno == ETIMEDOUT) && (tstate[i].test_state == 1)) {
@@ -109,8 +108,7 @@ void* watchdog(void* in)
             exit(-1);
         }
         else if ((n == 0) && (tstate[i].test_state == 0)) {
-            printf("TEST %d, %s DONE\n", i, tstate[i].test_name);
-            sem_post(&go);
+            printf("TEST %d, %s DONE\n", i % NUM_TESTS, tstate[i % NUM_TESTS].test_name);
         }
         else if (n == -1) {
             perror("WATCHDOG sem_timedwait\n");
@@ -218,14 +216,15 @@ lt_gemm(cublasLtHandle_t ltHandle,
     char ta = operation_to_char(blas_opts.transa);
     char tb = operation_to_char(blas_opts.transb);
 
+    /*
     printf ("#### args: ta=%c tb=%c m=%d n=%d k=%d", ta, tb, blas_opts.m, blas_opts.n, blas_opts.k);
-    //printCuType( " alpha =", alpha);
-    //printCuType( " beta=", beta);
+    printCuType( " alpha =", alpha);
+    printCuType( " beta=", beta);
     printf("\n");
     printf("#### args: lda=%d ldb=%d ldc=%d loop=%d\n", ldatransform, ldbtransform, ldctransform, blas_opts.timing_loop);   
     printf("#### input_type %d output_type %d scale_type %d math_type %d compute_type %d\n",
         blas_opts.input_type, blas_opts.output_type, blas_opts.scale_type, blas_opts.math_type, blas_opts.compute_type);
-
+    */
     using namespace std::chrono;
     high_resolution_clock::time_point start = high_resolution_clock::now();
     for (int i = 0; i < blas_opts.timing_loop; ++i) {
@@ -261,13 +260,15 @@ lt_gemm(cublasLtHandle_t ltHandle,
     double  TheoreticalBandwidth =
                 sizeof(T_IN) * ((double)blas_opts.m * (double)blas_opts.k + (double)blas_opts.k * (double)blas_opts.n) +
                 sizeof(T_OUT) * (double)blas_opts.m * (double)blas_opts.n;    
-    // if (blas_opts.timing_only) {
-      // fprintf (stdout, "!!!! GPU timing only. CPU reference not run.\n");
+    /*
+    if (blas_opts.timing_only) {
+      fprintf (stdout, "!!!! GPU timing only. CPU reference not run.\n");
       double cudaGflops = blas_opts.timing_loop * (1e-9*TheoreticalFlops)/(time_span.count());
       double cudaBandwidth = blas_opts.timing_loop *(1e-9*TheoreticalBandwidth)/(time_span.count());
       cublasPrintPerf(false, time_span.count(), cudaGflops);//, cudaBandwidth );    
-      // printGemmSOL<T_MATH>(0/*mathMode*/, time_span.count(), blas_opts.timing_loop, blas_opts.m, blas_opts.n, blas_opts.k, (int)(blas_opts.algo));
-    // }
+      printGemmSOL<T_MATH>(0, time_span.count(), blas_opts.timing_loop, blas_opts.m, blas_opts.n, blas_opts.k, (int)(blas_opts.algo));
+    }
+    */
 
     // descriptors are no longer needed as all GPU work was already enqueued
     if (CtransformDesc) cublas::cublas_check_error(cublasLtMatrixLayoutDestroy(CtransformDesc), "destory CtransformDesc failed");
@@ -512,7 +513,6 @@ int main(int argc, char *argv[]) {
       perror("pthread create - watchdog");
       exit(-1);
   }
-  printf("back in main...\n");
 
   printf("%s capturing GPU information...\n", argv[0]);
 
@@ -530,10 +530,11 @@ int main(int argc, char *argv[]) {
   CommandLine command_line(argc, argv);
   BlasOpts blas_opts;
   parse_args(command_line, blas_opts);
+  reset_blas_opts(command_line, blas_opts);
 
   /* GPU detection and test initilization*/
       int dev;
-      size_t gpumem;
+      size_t gpumem = 0LL;
       cudaDeviceProp devprops[MAX_NUM_GPUS] {};
       for (dev = 0; dev < deviceCount; dev++) {
           CHECK(cudaSetDevice(dev));
@@ -544,7 +545,7 @@ int main(int argc, char *argv[]) {
           else {
               if (gpumem != devprops[dev - 1].totalGlobalMem) {
                   printf("Detected different GPU memory sizes\n");
-                  printf("gpumem: %lld, GPU %d %lld\n", gpumem, (dev - 1), devprops[dev - 1].totalGlobalMem);
+                  printf("gpumem: %lld, GPU %d %lld\n", (long long) gpumem, (dev - 1), (long long) devprops[dev - 1].totalGlobalMem);
                   printf("EXITING...\n");
                   exit(0);
               }
@@ -552,17 +553,22 @@ int main(int argc, char *argv[]) {
       }
 
       /* Initilize tests based on type of GPU; currently A100 or T4 based
-      ** default to A100 unless T4
+      ** default to T4 unless A100
       */
+      int memgb = 0;
       string gpu_name(devprops[0].name);
-      if (gpu_name == "Tesla T4") {
-          cout << "Initilizing T4 based test suite" << endl;
-          wgst = WGST(WGST::T4);
-      }
-      else {
+      if (gpu_name == "A100-SXM4-40GB") {
           cout << "Initilizing A100 based test suite" << endl;
           wgst = WGST(WGST::A100);
+	  memgb = 40;
       }
+      else {
+          cout << "Initilizing T4 based test suite" << endl;
+          wgst = WGST(WGST::T4);
+	  memgb = 16;
+      }
+
+      /*
       int memgb = 0;
       if (gpumem >= (39 * 1e9))
           memgb = 40;
@@ -571,29 +577,20 @@ int main(int argc, char *argv[]) {
       else if (gpumem >= (15 * 1e9))
           memgb = 16;
       else {
-          printf("Unexpected GPU memory size: %lld\n", gpumem);
+          printf("Unexpected GPU memory size: %lld\n", (long long) gpumem);
           printf("EXITING\n");
           exit(0);
       }
-      printf("GPU Memory: %lld, memgb: %d\n", gpumem, memgb);
+      */
+
+
+      printf("GPU Memory: %lld, memgb: %d\n", (long long) gpumem, memgb);
       printf("\n\n");
-
-      //cout << "DEBUG:" << "1" << endl;
-
-      /* Debug 
-      cout << "DEBUG:" << "before extern hello_world " << endl;
-      extern void hello_world(BlasOpts & blas_opts, const string & in_math_scale_out_type);
-      cout << "DEBUG:" << "after extern hello_world " << endl;
-       */
-
 
   for (dev = 0; dev < deviceCount; dev++) {
 	CHECK(cudaSetDevice(dev));
-	printf("******** Running Stress Tests on Device: %d, Name: %s *********\n",dev,devprops[dev].name);
+	printf("Device %d: \"%s\", PCIe: %x\n", dev, devprops[dev].name,devprops[dev].pciBusID);
 
-    /* Wait for watchdog to signal test start */
-    sem_wait(&go);
-    printf("MAIN - GO!\n");
     // wgst.dump_test_args(0);
 
 	for (int t_num = 0; t_num  < NUM_TESTS; t_num++) {
@@ -604,7 +601,7 @@ int main(int argc, char *argv[]) {
             printf("GPUstress terminating\n");
             exit(-1);
         }
-
+        reset_blas_opts(command_line, blas_opts);
         /* Debug
         wgst.dump_test_args(tix);
         hello_world(blas_opts, wgst.stress_tests[0].P_arg);
@@ -618,22 +615,30 @@ int main(int argc, char *argv[]) {
 			exit(-1);
 		}
         // cout << "DEBUG:" << "set opts" << endl;
-		if (memgb == 16) {
-		    blas_opts.m = wgst.stress_tests[t_num].m_arg;
-		    blas_opts.n = wgst.stress_tests[t_num].n_arg;
-		    blas_opts.k = wgst.stress_tests[t_num].k_arg;
-		} else {
-		    // For right now, use the same values for 32GB and 40GB
-		    blas_opts.m = (wgst.stress_tests[t_num].m_arg * 2);
-		    blas_opts.n = (wgst.stress_tests[t_num].n_arg * 2);
-		    blas_opts.k = (wgst.stress_tests[t_num].k_arg * 2);
-		}
-		if (wgst.stress_tests[t_num].ta_arg == 1)
-			blas_opts.transa_opt = true;
-		if (wgst.stress_tests[t_num].tb_arg == 1)
-			blas_opts.transb_opt = true;
 
-		printf("**** Running test %d, %s\n", t_num, wgst.stress_tests[t_num].test_name);
+		blas_opts.m = wgst.stress_tests[t_num].m_arg;
+		blas_opts.n = wgst.stress_tests[t_num].n_arg;
+		blas_opts.k = wgst.stress_tests[t_num].k_arg;
+        blas_opts.m_opt = true;
+        blas_opts.n_opt = true;
+        blas_opts.k_opt = true;
+
+        if (wgst.stress_tests[t_num].ta_arg == 1)
+            blas_opts.transa_opt = true;
+        else {
+            blas_opts.transa_opt = false;
+            blas_opts.transa = (cublasOperation_t)0;
+        }
+        if (wgst.stress_tests[t_num].tb_arg == 1)
+            blas_opts.transb_opt = true;
+        else {
+            blas_opts.transb_opt = false;
+            blas_opts.transb = (cublasOperation_t)0;
+        }
+        blas_opts.beta = 0.0f;
+        blas_opts.beta_opt = true;
+        
+        printf("***** STARTING TEST %d: %s On Device %d %s\n", t_num, wgst.stress_tests[t_num].test_name, dev, devprops[dev].name);
         tstate[t_num].test_name = wgst.stress_tests[t_num].test_name;
         tstate[t_num].test_state = 1;
         tstate[t_num].start_time = time(NULL);
@@ -656,7 +661,10 @@ int main(int argc, char *argv[]) {
 		}
         tstate[t_num].end_time = time(NULL);
         tstate[t_num].test_state = 0;
-	    printf("TEST TIME: %d seconds\n",(int)(tstate[t_num].end_time - tstate[t_num].start_time));
+        printf("TEST TIME: %d seconds\n",(int)(tstate[t_num].end_time - tstate[t_num].start_time));
+        cudaDeviceSynchronize();
+        cudaDeviceReset();
+
         if (t_num == NUM_TESTS)
             tests_done = 1;
 

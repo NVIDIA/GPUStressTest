@@ -223,6 +223,36 @@ usage ( void ){
   printf( "-tb= op(B) {0=no transpose, 1=transpose, 2=hermitian}\n");
 }
 
+void reset_blas_opts(CommandLine& command_line, BlasOpts &blas_opts)
+{
+  memset ((void *)&blas_opts, 0, sizeof(BlasOpts));  
+  blas_opts.timing_only = false;
+  blas_opts.transa = DEFAULT_TRANS_OP_N;
+  blas_opts.transb = DEFAULT_TRANS_OP_N;
+  blas_opts.transa_opt = false;
+  blas_opts.transb_opt = false;
+  blas_opts.input_type = DEFAULT_DATA_TYPE_FP32;
+  blas_opts.output_type = DEFAULT_DATA_TYPE_FP32;
+  blas_opts.compute_type = DEFAULT_COMPUTE_TYPE_32F;
+  blas_opts.scale_type = DEFAULT_DATA_TYPE_FP32;
+  blas_opts.math_type = DEFAULT_DATA_TYPE_FP32;
+  blas_opts.algo = DEFAULT_ALGO_GEMM_DEFAULT;
+  blas_opts.m = DEFAULT_1024;
+  blas_opts.n = DEFAULT_1024;
+  blas_opts.k = DEFAULT_1024;
+  if (command_line.check_cmd_line_flag("T")) {
+      command_line.get_cmd_line_argument("T", blas_opts.timing_loop);
+  }
+  else {
+      blas_opts.timing_loop = 100;
+  }
+  blas_opts.m_orderingA = CUBLASLT_ORDER_COL;
+  blas_opts.m_orderingB = CUBLASLT_ORDER_COL;
+  blas_opts.m_orderingC = CUBLASLT_ORDER_COL;
+  blas_opts.alpha = 1.0f;
+  blas_opts.beta = 1.0f;
+}
+
 void
 parse_args(CommandLine &command_line, BlasOpts &blas_opts) {
   memset ((void *)&blas_opts, 0, sizeof(BlasOpts));  
@@ -240,7 +270,12 @@ parse_args(CommandLine &command_line, BlasOpts &blas_opts) {
   blas_opts.m = DEFAULT_1024;
   blas_opts.n = DEFAULT_1024;
   blas_opts.k = DEFAULT_1024;
-  blas_opts.timing_loop = 100;  
+  if (command_line.check_cmd_line_flag("T")) {
+      command_line.get_cmd_line_argument("T", blas_opts.timing_loop);
+  }
+  else {
+      blas_opts.timing_loop = 10;
+  }
   blas_opts.m_orderingA = CUBLASLT_ORDER_COL;
   blas_opts.m_orderingB = CUBLASLT_ORDER_COL;
   blas_opts.m_orderingC = CUBLASLT_ORDER_COL;
