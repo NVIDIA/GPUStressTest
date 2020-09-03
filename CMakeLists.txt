@@ -28,6 +28,7 @@ foreach(SM ${SMS_LIST})
     string(APPEND CMAKE_CUDA_FLAGS " -gencode arch=compute_${SM},code=sm_${SM}")
 endforeach(SM)
 message("-- GPU SM = " ${DISPLAY_SMS_LIST})
+message("-- CMAKE_CUDA_FLAGS = " ${CMAKE_CUDA_FLAGS})
 
 if(${CMAKE_BUILD_TYPE} MATCHES Debug)
     set(FLAGS ${FLAGS} "-G")
