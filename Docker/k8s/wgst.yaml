@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: wgst
+  labels:
+    app: wgst
+spec:
+  containers:
+  - name: wgst
+    image: gcr.io/egx-anthos-gpu-operator-val/wgst-nodriver:latest
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+    securityContext:
+      privileged: true
+
+
