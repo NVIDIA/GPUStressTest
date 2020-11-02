@@ -1,0 +1,2 @@
+mpirun --allow-run-as-root -np 4 -H ncfae-dgx2:4 ./wgst_mpirun_rank_cpu.sh
+
