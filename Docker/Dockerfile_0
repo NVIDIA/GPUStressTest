@@ -4,7 +4,7 @@ FROM ubuntu:18.04 AS OS
 RUN  mkdir -p /nvidia
 COPY software/wgst /nvidia/wgst
 COPY software/libcublasLt.so.11 /nvidia/libcublasLt.so.11
-COPY software/cuda_11.0.1_450.24_linux.run /nvidia/cuda_11.0.1_450.24_linux.run
+COPY software/NVIDIA-Linux-x86_64-450.51.07.run /nvidia/
 #COPY software/run.sh /nvidia/run.sh
 #COPY software/librt.so.1  /nvidia/librt.so.1
 #COPY software/libdl.so.2 /nvidia/libdl.so.2

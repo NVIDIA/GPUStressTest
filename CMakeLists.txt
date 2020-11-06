@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.8.0)
 
 set(CUDA_HOME "/usr/local/cuda" CACHE STRING "" FORCE)
-set(WGST_HOME "/home/dfisk/WGST/wgst_v0.1_master/wgst" CACHE STRING "" FORCE)
+set(WGST_HOME "/home/dgx2/dfisk/wgst/build/wgst" CACHE STRING "" FORCE)
 set(LD_LIBRARY_PATH "${CUDA_HOME}/lib64;${LD_LIBRARY_PATH}")
 set(CMAKE_VERBOSE_MAKEFILE "ON" CACHE STRING "" FORCE)
 
