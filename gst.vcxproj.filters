@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="util">
+      <UniqueIdentifier>{8e5f8fb9-55fd-4377-9404-70d4910e068d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="util\command_line.h">
+      <Filter>util</Filter>
+    </ClInclude>
+    <ClInclude Include="util\common.h">
+      <Filter>util</Filter>
+    </ClInclude>
+    <ClInclude Include="util\common_header.h">
+      <Filter>util</Filter>
+    </ClInclude>
+    <ClInclude Include="util\exceptions.h">
+      <Filter>util</Filter>
+    </ClInclude>
+    <ClInclude Include="util\gpu_stress.h">
+      <Filter>util</Filter>
+    </ClInclude>
+    <ClInclude Include="util\memory.h">
+      <Filter>util</Filter>
+    </ClInclude>
+    <ClInclude Include="util\test_args.h">
+      <Filter>util</Filter>
+    </ClInclude>
+    <ClInclude Include="util\type_convert.h">
+      <Filter>util</Filter>
+    </ClInclude>
+    <ClInclude Include="util\GST.h">
+      <Filter>util</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="util\device_info.cu">
+      <Filter>util</Filter>
+    </CudaCompile>
+    <CudaCompile Include="util\test_args.cu">
+      <Filter>util</Filter>
+    </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="util\measure.cc">
+      <Filter>util</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
