@@ -73,8 +73,8 @@ https://github.com/microsoft/vcpkg.git
 #include <errno.h>
 #include <time.h>
 
-/* WGST specific */
-#include "WGST.h"
+/* GST specific */
+#include "GST.h"
 
 /* Test metadata for watchdog oversight -------------------------------------------------------------- */
 struct test_state {
@@ -149,9 +149,9 @@ void* watchdog(void* in)
 }
 /* ---------------------------------------------------------------------------------------------------------------------------*/
 
-/*The base code for WGST is cublasMatMulbench which accepts command 
-**line arguments largely ignored by WGST but left intact. Existing
-** options include the time_loop "-T=<loop count>" which is used by WGST
+/*The base code for GST is cublasMatMulbench which accepts command 
+**line arguments largely ignored by GST but left intact. Existing
+** options include the time_loop "-T=<loop count>" which is used by GST
 ** and defaults to 100 requiring a runtime of around 30 min for five tests
 ** on a V100 for reference ad drives the GPU to full power, TFLOPS and memory
 */
@@ -519,7 +519,7 @@ int main(int argc, char *argv[]) {
   int ret = 0;
   pthread_t wd_thread;
   pthread_attr_t attr;
-  WGST wgst;
+  GST gst;
 
   sem_init(&wd, 0, 0);
   sem_init(&go, 0, 0);
@@ -581,12 +581,12 @@ int main(int argc, char *argv[]) {
       string gpu_name(devprops[0].name);
       if (gpu_name == "A100-SXM4-40GB") {
           cout << "Initilizing A100 based test suite" << endl;
-          wgst = WGST(WGST::A100);
+          gst = GST(GST::A100);
 	  memgb = 40;
       }
       else {
           cout << "Initilizing T4 based test suite" << endl;
-          wgst = WGST(WGST::T4);
+          gst = GST(GST::T4);
 	  memgb = 16;
       }
 
@@ -613,7 +613,7 @@ int main(int argc, char *argv[]) {
 	CHECK(cudaSetDevice(dev));
 	printf("Device %d: \"%s\", PCIe: %x\n", dev, devprops[dev].name,devprops[dev].pciBusID);
 
-    // wgst.dump_test_args(0);
+    // gst.dump_test_args(0);
 
 	for (int t_num = 0; t_num  < NUM_TESTS; t_num++) {
 
@@ -625,12 +625,12 @@ int main(int argc, char *argv[]) {
         }
         reset_blas_opts(command_line, blas_opts);
         /* Debug
-        wgst.dump_test_args(tix);
-        hello_world(blas_opts, wgst.stress_tests[0].P_arg);
+        gst.dump_test_args(tix);
+        hello_world(blas_opts, gst.stress_tests[0].P_arg);
         */
 
         /* Parse command line optioms */
-        bool p_parse = parse_in_math_scale_out_type(blas_opts, wgst.stress_tests[t_num].P_arg);
+        bool p_parse = parse_in_math_scale_out_type(blas_opts, gst.stress_tests[t_num].P_arg);
         // cout << "DEBUG:" << "after parse" << endl;
 		if (!p_parse) {
 			printf("p_parse failed\n");
@@ -638,20 +638,20 @@ int main(int argc, char *argv[]) {
 		}
         // cout << "DEBUG:" << "set opts" << endl;
 
-		blas_opts.m = wgst.stress_tests[t_num].m_arg;
-		blas_opts.n = wgst.stress_tests[t_num].n_arg;
-		blas_opts.k = wgst.stress_tests[t_num].k_arg;
+		blas_opts.m = gst.stress_tests[t_num].m_arg;
+		blas_opts.n = gst.stress_tests[t_num].n_arg;
+		blas_opts.k = gst.stress_tests[t_num].k_arg;
         blas_opts.m_opt = true;
         blas_opts.n_opt = true;
         blas_opts.k_opt = true;
 
-        if (wgst.stress_tests[t_num].ta_arg == 1)
+        if (gst.stress_tests[t_num].ta_arg == 1)
             blas_opts.transa_opt = true;
         else {
             blas_opts.transa_opt = false;
             blas_opts.transa = (cublasOperation_t)0;
         }
-        if (wgst.stress_tests[t_num].tb_arg == 1)
+        if (gst.stress_tests[t_num].tb_arg == 1)
             blas_opts.transb_opt = true;
         else {
             blas_opts.transb_opt = false;
@@ -660,8 +660,8 @@ int main(int argc, char *argv[]) {
         blas_opts.beta = 0.0f;
         blas_opts.beta_opt = true;
         
-        printf("***** STARTING TEST %d: %s On Device %d %s\n", t_num, wgst.stress_tests[t_num].test_name, dev, devprops[dev].name);
-        tstate[t_num].test_name = wgst.stress_tests[t_num].test_name;
+        printf("***** STARTING TEST %d: %s On Device %d %s\n", t_num, gst.stress_tests[t_num].test_name, dev, devprops[dev].name);
+        tstate[t_num].test_name = gst.stress_tests[t_num].test_name;
         tstate[t_num].test_state = 1;
         tstate[t_num].start_time = time(NULL);
         // cout << "DEBUG:" << "signal wd" << endl;
@@ -672,7 +672,7 @@ int main(int argc, char *argv[]) {
 
         /* Run the test */
         test_cublasLt(blas_opts);
-		printf("***** TEST %s On Device %d %s\n", wgst.stress_tests[t_num].test_name, dev, devprops[dev].name);
+		printf("***** TEST %s On Device %d %s\n", gst.stress_tests[t_num].test_name, dev, devprops[dev].name);
 		if (!test_ran) 
 			printf("***** TEST DID NOT EXECUTE *****\n\n");
 		else {

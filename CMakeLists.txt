@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.8.0)
 
 set(CUDA_HOME "/usr/local/cuda" CACHE STRING "" FORCE)
-set(WGST_HOME "/home/dgx2/dfisk/wgst/build/wgst" CACHE STRING "" FORCE)
+set(GST_HOME "/home/dgx2/jmauro/gst" CACHE STRING "" FORCE)
 set(LD_LIBRARY_PATH "${CUDA_HOME}/lib64;${LD_LIBRARY_PATH}")
 set(CMAKE_VERBOSE_MAKEFILE "ON" CACHE STRING "" FORCE)
 
-project(wgst LANGUAGES CXX CUDA C)
+project(gst LANGUAGES CXX CUDA C)
 
 # Set a default build type if none was specified
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -20,7 +20,7 @@ endif()
 set(FLAGS "")
 set(CMAKE_CUDA_FLAGS "" CACHE STRING "" FORCE)
 # Note that cmake will insert semicolons between these item automatically...
-set(SM_LIST "70,75,80" CACHE STRING "Please input compute capability")
+set(SM_LIST "70,75" CACHE STRING "Please input compute capability")
 MARK_AS_ADVANCED(SM_LIST)
 string(REPLACE "," " " DISPLAY_SMS_LIST ${SM_LIST})
 string(REPLACE "," ";" SMS_LIST ${SM_LIST})
@@ -85,8 +85,8 @@ LIST(APPEND SRC_FILES
     ${PROJECT_SOURCE_DIR}/util/device_info.cu
     )
 
-add_executable(wgst main.cu ${SRC_FILES})
-target_link_libraries(wgst cublas cublasLt)
+add_executable(gst main.cu ${SRC_FILES})
+target_link_libraries(gst cublas cublasLt)
 
 
 
