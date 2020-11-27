@@ -1,9 +1,10 @@
 To build gst in Linux, edit the CMakeLists.txt and set the location of CUDA 
 (default /usr/local/cuda) and the path to your local gst repository:
 e.g.
+```
 set(CUDA_HOME "/usr/local/cuda" CACHE STRING "" FORCE)
 set(GPUStressTest_HOME "/home/dfisk/GPUStressTest" CACHE STRING "" FORCE)
-
+```
 There is one command line argument to gst: -T=n,   where is the loop count.
 (default is -T=10)  This determines how long each test runs, up to 600 seconds
 at which point the hang detection is triggered and the test aborts.
