@@ -30,6 +30,6 @@ vcpkg list
 vcpkg install pthreads:x64-windows
 ```
 
-The projectbuild properties in VSC need to be modified to point to the installation location of GPUStreesTest to find it’s util folder.
+The project build properties in VSC need to be modified to point to the installation location of GPUStreesTest to find it’s util folder.
 
 
