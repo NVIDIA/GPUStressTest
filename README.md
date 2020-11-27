@@ -18,6 +18,7 @@ on or more hosts. Please see the scripts in the Docker directory for examples.
 
 In order to build gst.exe on Windows 10 (also for Server 2019 and 2020)
 Install the POSIX compatibility package provided by Microsoft:
+```
 https://docs.microsoft.com/en-us/cpp/build/vcpkg?view=vs-2019
 https://github.com/microsoft/vcpkg.git
 
@@ -27,6 +28,7 @@ vcpkg integrate install
 vcpkg integrate project
 vcpkg list
 vcpkg install pthreads:x64-windows
+```
 
 The projectbuild properties in VSC need to be modified to point to the installation location of GPUStreesTest to find it’s util folder.
 
