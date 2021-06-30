@@ -554,66 +554,57 @@ int main(int argc, char *argv[]) {
   parse_args(command_line, blas_opts);
   reset_blas_opts(command_line, blas_opts);
 
-  /* GPU detection and test initilization*/
-      int dev;
-      size_t gpumem = 0LL;
-      cudaDeviceProp devprops[MAX_NUM_GPUS] {};
-      for (dev = 0; dev < deviceCount; dev++) {
-          CHECK(cudaSetDevice(dev));
-          CHECK(cudaGetDeviceProperties(&devprops[dev], dev));
-          printf("Device %d: \"%s\"\n", dev, devprops[dev].name);
-          if (dev == 0)
-              gpumem = devprops[dev].totalGlobalMem;
-          else {
-              if (gpumem != devprops[dev - 1].totalGlobalMem) {
-                  printf("Detected different GPU memory sizes\n");
-                  printf("gpumem: %lld, GPU %d %lld\n", (long long) gpumem, (dev - 1), (long long) devprops[dev - 1].totalGlobalMem);
-                  printf("EXITING...\n");
-                  exit(0);
-              }
+  /* GPU detection and test initilization */
+  int dev;
+  size_t gpumem = 0LL;
+  cudaDeviceProp devprops[MAX_NUM_GPUS] {};
+  for (dev = 0; dev < deviceCount; dev++) {
+      CHECK(cudaSetDevice(dev));
+      CHECK(cudaGetDeviceProperties(&devprops[dev], dev));
+      printf("Device %d: \"%s\"\n", dev, devprops[dev].name);
+      if (dev == 0)
+          gpumem = devprops[dev].totalGlobalMem;
+      else {
+          if (gpumem != devprops[dev - 1].totalGlobalMem) {
+              printf("Detected different GPU memory sizes\n");
+              printf("gpumem: %lld, GPU %d %lld\n", (long long) gpumem, (dev - 1), (long long) devprops[dev - 1].totalGlobalMem);
+              printf("EXITING...\n");
+              exit(0);
           }
       }
+  }
 
-      /* Initilize tests based on type of GPU; currently A100 or T4 based
-      ** default to T4 unless A100
-      */
-      int memgb = 0;
-      string gpu_name(devprops[0].name);
-      if (gpu_name == "A100-SXM4-40GB") {
-          cout << "Initilizing A100 based test suite" << endl;
-          gst = GST(GST::A100);
-	  memgb = 40;
-      }
-      else {
+  /* Initilize tests based on type of GPU; currently A100 or T4 based
+  ** default to T4 unless A100
+  */
+  int memgb = 0;
+  string gpu_name(devprops[0].name);
+  if (gpu_name == "A100-SXM4-40GB") {
+      cout << "Initilizing A100 based test suite" << endl;
+      gst = GST(GST::A100);
+      memgb = 40;
+  }
+  else {
+      if (gpu_name.find("T4", 0) != string::npos) {
           cout << "Initilizing T4 based test suite" << endl;
           gst = GST(GST::T4);
-	  memgb = 16;
-      }
-
-      /*
-      int memgb = 0;
-      if (gpumem >= (39 * 1e9))
-          memgb = 40;
-      else if (gpumem >= (31 * 1e9))
-          memgb = 32;
-      else if (gpumem >= (15 * 1e9))
           memgb = 16;
-      else {
-          printf("Unexpected GPU memory size: %lld\n", (long long) gpumem);
-          printf("EXITING\n");
-          exit(0);
       }
-      */
+      else {
+          cout << "Initilizing Generic test suite" << endl;
+          gst = GST(GST::Generic);
+           memgb = 8;
+      }
+  }
 
-
-      printf("GPU Memory: %lld, memgb: %d\n", (long long) gpumem, memgb);
-      printf("\n\n");
+  printf("GPU Memory: %lld, memgb: %d\n", (long long) gpumem, memgb);
+  printf("\n\n");
 
   for (dev = 0; dev < deviceCount; dev++) {
 	CHECK(cudaSetDevice(dev));
 	printf("Device %d: \"%s\", PCIe: %x\n", dev, devprops[dev].name,devprops[dev].pciBusID);
 
-    // gst.dump_test_args(0);
+       // gst.dump_test_args(0);
 
 	for (int t_num = 0; t_num  < NUM_TESTS; t_num++) {
 
