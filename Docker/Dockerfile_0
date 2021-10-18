@@ -1,10 +1,9 @@
 FROM ubuntu:18.04 AS OS
-### FROM ubuntu/18.04:pytorch_cuda11_450.24
-###FROM nvidia/cuda:9.0-base  AS OS
 RUN  mkdir -p /nvidia
-COPY software/wgst /nvidia/wgst
+COPY software/gst /nvidia/gst
 COPY software/libcublasLt.so.11 /nvidia/libcublasLt.so.11
-COPY software/NVIDIA-Linux-x86_64-450.51.07.run /nvidia/
+COPY software/libcudart.so /nvidia/libcudart.so
+#COPY software/NVIDIA-Linux-x86_64-450.51.07.run /nvidia/
 #COPY software/run.sh /nvidia/run.sh
 #COPY software/librt.so.1  /nvidia/librt.so.1
 #COPY software/libdl.so.2 /nvidia/libdl.so.2
@@ -14,7 +13,7 @@ COPY software/NVIDIA-Linux-x86_64-450.51.07.run /nvidia/
 #COPY software/libicuuc.so.60 /nvidia/libicuuc.so.60
 #COPY software/libicudata.so.60 /nvidia/libicudata.so.60
 ENV LD_LIBRARY_PATH=/nvidia
-###ENTRYPOINT /nvidia/run.sh
-###CMD /nvidia/wgst -T=1
-CMD /bin/bash
+ENTRYPOINT ["/nvidia/gst", "$@"]
+###CMD /nvidia/gst -T=1
+
 
