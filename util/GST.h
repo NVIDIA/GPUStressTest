@@ -419,7 +419,7 @@ private:
         stress_tests[0].test_name = "FP16";
         stress_tests[0].test_state = 0;
         stress_tests[0].P_arg = "hsh";
-        stress_tests[0].m_arg = 73728;
+        stress_tests[0].m_arg = 20728;
         stress_tests[0].n_arg = 55296;
         stress_tests[0].k_arg = 196608;
         stress_tests[0].ta_arg = 0;
@@ -429,8 +429,8 @@ private:
         stress_tests[1].test_name = "C32";
         stress_tests[1].test_state = 0;
         stress_tests[1].P_arg = "ccc";
-        stress_tests[1].m_arg = 36864;
-        stress_tests[1].n_arg = 27648;
+        stress_tests[1].m_arg = 10864;
+        stress_tests[1].n_arg = 28250;
         stress_tests[1].k_arg = 98340;
         stress_tests[1].ta_arg = 0;
         stress_tests[1].tb_arg = 1;
@@ -439,8 +439,8 @@ private:
         stress_tests[2].test_name = "FP32";
         stress_tests[2].test_state = 0;
         stress_tests[2].P_arg = "hhh";
-        stress_tests[2].m_arg = 73728;
-        stress_tests[2].n_arg = 55296;
+        stress_tests[2].m_arg = 15000;
+        stress_tests[2].n_arg = 60296;
         stress_tests[2].k_arg = 196608;
         stress_tests[2].ta_arg = 0;
         stress_tests[2].tb_arg = 1;
@@ -449,8 +449,8 @@ private:
         stress_tests[3].test_name = "FP64";
         stress_tests[3].test_state = 0;
         stress_tests[3].P_arg = "zzz";
-        stress_tests[3].m_arg = 18432;
-        stress_tests[3].n_arg = 13824;
+        stress_tests[3].m_arg = 20432;
+        stress_tests[3].n_arg = 15000;
         stress_tests[3].k_arg = 49170;
         stress_tests[3].ta_arg = 0;
         stress_tests[3].tb_arg = 1;

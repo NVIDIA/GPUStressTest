@@ -378,10 +378,14 @@ test_engine(const BlasOpts& blas_opts) {
     matrixSizeB = (size_t)rowsB * colsB;
     matrixSizeC = (size_t)rowsC * colsC;
 
+    printf("DEBUG: matrixSizeA %ld matrixSizeB %ld matrixSizeC %ld \n", matrixSizeA, matrixSizeB, matrixSizeC);
+
     d_A = cublas::device_memory::allocate<T_IN>(matrixSizeA);
     d_B = cublas::device_memory::allocate<T_IN>(matrixSizeB);
     d_C = cublas::device_memory::allocate<T_OUT>(matrixSizeC);
     
+    printf("DEBUG: After  cublas::device_memory::allocate\n");
+
     //cublas::cuda_check_error(cudaMemset(d_C, 0, matrixSizeC * sizeof(h_C[0])), "cudaMemset error");
     
     cublasLtHandle_t ltHandle;
