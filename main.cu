@@ -579,16 +579,22 @@ int main(int argc, char *argv[]) {
   int memgb = 0;
   string gpu_name(devprops[0].name);
   while (true) {
-    if (gpu_name == "A100-SXM4-40GB") {
-        cout << "Initilizing A100 based test suite" << endl;
-        gst = GST(GST::A100);
-        memgb = 40;
+    if (gpu_name.find("A100", 0) != string::npos) {
+        if (gpumem > 50) {
+          cout << "Initilizing V100 80 GB based test suite" << endl;
+          gst = GST(GST::A100_80);
+          memgb = 80;
+        }  else {
+          cout << "Initilizing V100 40 GB based test suite" << endl;
+          gst = GST(GST::A100_40);
+          memgb = 40;
+        }
         break;
     }
     if (gpu_name.find("T4", 0) != string::npos) {
         cout << "Initilizing T4 based test suite" << endl;
         gst = GST(GST::T4);
-        memgb = 15;
+        memgb = 16;
         break;
     }
     if (gpu_name.find("K80", 0) != string::npos) {
