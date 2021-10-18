@@ -574,27 +574,63 @@ int main(int argc, char *argv[]) {
       }
   }
 
-  /* Initilize tests based on type of GPU; currently A100 or T4 based
-  ** default to T4 unless A100
+  /* Initilize tests based on type of GPU
   */
   int memgb = 0;
   string gpu_name(devprops[0].name);
-  if (gpu_name == "A100-SXM4-40GB") {
-      cout << "Initilizing A100 based test suite" << endl;
-      gst = GST(GST::A100);
-      memgb = 40;
-  }
-  else {
-      if (gpu_name.find("T4", 0) != string::npos) {
-          cout << "Initilizing T4 based test suite" << endl;
-          gst = GST(GST::T4);
+  while (true) {
+    if (gpu_name == "A100-SXM4-40GB") {
+        cout << "Initilizing A100 based test suite" << endl;
+        gst = GST(GST::A100);
+        memgb = 40;
+        break;
+    }
+    if (gpu_name.find("T4", 0) != string::npos) {
+        cout << "Initilizing T4 based test suite" << endl;
+        gst = GST(GST::T4);
+        memgb = 15;
+        break;
+    }
+    if (gpu_name.find("K80", 0) != string::npos) {
+        cout << "Initilizing K80 based test suite" << endl;
+        gst = GST(GST::K80);
+        memgb = 11;
+        break;
+    }
+    if (gpu_name.find("M60", 0) != string::npos) {
+        cout << "Initilizing M60 based test suite" << endl;
+        gst = GST(GST::M60);
+        memgb = 8;
+        break;
+    }
+    if (gpu_name.find("P40", 0) != string::npos) {
+        cout << "Initilizing P40 based test suite" << endl;
+        gst = GST(GST::P40);
+        memgb = 22;
+        break;
+    }
+    if (gpu_name.find("P100", 0) != string::npos) {
+        cout << "Initilizing P100 based test suite" << endl;
+        gst = GST(GST::P100);
+        memgb = 16;
+        break;
+    }
+    if (gpu_name.find("V100", 0) != string::npos) {
+        if (gpumem > 30) {
+          cout << "Initilizing V100 32 GB based test suite" << endl;
+          gst = GST(GST::V100_32);
+          memgb = 32;
+        }  else {
+          cout << "Initilizing V100 16 GB based test suite" << endl;
+          gst = GST(GST::V100_16);
           memgb = 16;
-      }
-      else {
-          cout << "Initilizing Generic test suite" << endl;
-          gst = GST(GST::Generic);
-           memgb = 8;
-      }
+        }
+        break;
+    }
+      cout << "Initilizing Generic test suite" << endl;
+      gst = GST(GST::Generic);
+      memgb = 8;
+      break;
   }
 
   printf("GPU Memory: %lld, memgb: %d\n", (long long) gpumem, memgb);
