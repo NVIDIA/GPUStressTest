@@ -431,7 +431,7 @@ private:
         stress_tests[1].P_arg = "ccc";
         stress_tests[1].m_arg = 10864;
         stress_tests[1].n_arg = 28250;
-        stress_tests[1].k_arg = 98340;
+        stress_tests[1].k_arg = 88340;
         stress_tests[1].ta_arg = 0;
         stress_tests[1].tb_arg = 1;
         stress_tests[1].B_arg = 0;

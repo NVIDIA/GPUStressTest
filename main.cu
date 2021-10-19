@@ -378,13 +378,13 @@ test_engine(const BlasOpts& blas_opts) {
     matrixSizeB = (size_t)rowsB * colsB;
     matrixSizeC = (size_t)rowsC * colsC;
 
-    printf("DEBUG: matrixSizeA %ld matrixSizeB %ld matrixSizeC %ld \n", matrixSizeA, matrixSizeB, matrixSizeC);
+    //printf("DEBUG: matrixSizeA %ld matrixSizeB %ld matrixSizeC %ld \n", matrixSizeA, matrixSizeB, matrixSizeC);
 
     d_A = cublas::device_memory::allocate<T_IN>(matrixSizeA);
     d_B = cublas::device_memory::allocate<T_IN>(matrixSizeB);
     d_C = cublas::device_memory::allocate<T_OUT>(matrixSizeC);
     
-    printf("DEBUG: After  cublas::device_memory::allocate\n");
+    //printf("DEBUG: After  cublas::device_memory::allocate\n");
 
     //cublas::cuda_check_error(cudaMemset(d_C, 0, matrixSizeC * sizeof(h_C[0])), "cudaMemset error");
     
@@ -535,7 +535,7 @@ int main(int argc, char *argv[]) {
     exit(-1);
   }
 
-  if (ret = pthread_create(&wd_thread, &attr, watchdog, (void*)NULL) != 0) {
+  if (pthread_create(&wd_thread, &attr, watchdog, (void*)NULL) != 0) {
       perror("pthread create - watchdog");
       exit(-1);
   }
@@ -713,8 +713,10 @@ int main(int argc, char *argv[]) {
 		if (!test_ran) 
 			printf("***** TEST DID NOT EXECUTE *****\n\n");
 		else {
-			if (has_error == true)
+			if (has_error == true) {
 				printf("***** TEST FAILED ****\n\n");
+                                ret = -1;
+                        }
 			else
 				printf("***** TEST PASSED ****\n\n");
 		}
