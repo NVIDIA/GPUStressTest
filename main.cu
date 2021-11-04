@@ -238,6 +238,9 @@ lt_gemm(cublasLtHandle_t ltHandle,
     char ta = operation_to_char(blas_opts.transa);
     char tb = operation_to_char(blas_opts.transb);
 
+    printf("#### args: ta=%c tb=%c m=%d n=%d k=%d", ta, tb, blas_opts.m, blas_opts.n, blas_opts.k);
+    printf("#### args: lda=%d ldb=%d ldc=%d loop=%d\n", ldatransform, ldbtransform, ldctransform, blas_opts.timing_loop);   
+
     /*
     printf ("#### args: ta=%c tb=%c m=%d n=%d k=%d", ta, tb, blas_opts.m, blas_opts.n, blas_opts.k);
     printCuType( " alpha =", alpha);
@@ -249,6 +252,8 @@ lt_gemm(cublasLtHandle_t ltHandle,
     */
     using namespace std::chrono;
     high_resolution_clock::time_point start = high_resolution_clock::now();
+
+/*** dcf debug
     for (int i = 0; i < blas_opts.timing_loop; ++i) {
       cublas::cublas_check_error(cublasLtMatmul(ltHandle,
                                                 matmulDesc,
@@ -269,6 +274,9 @@ lt_gemm(cublasLtHandle_t ltHandle,
     }
 
     cublas::cuda_check_error(cudaDeviceSynchronize(), "cudaDeviceSynchronize failed");
+
+*************************************/
+
 
     high_resolution_clock::time_point end = high_resolution_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(end - start);
@@ -378,13 +386,18 @@ test_engine(const BlasOpts& blas_opts) {
     matrixSizeB = (size_t)rowsB * colsB;
     matrixSizeC = (size_t)rowsC * colsC;
 
-    //printf("DEBUG: matrixSizeA %ld matrixSizeB %ld matrixSizeC %ld \n", matrixSizeA, matrixSizeB, matrixSizeC);
+    printf("DEBUG: matrixSizeA %ld matrixSizeB %ld matrixSizeC %ld \n", matrixSizeA, matrixSizeB, matrixSizeC);
 
+// dcf debug below
+matrixSizeA=10;
+matrixSizeB=10;
+matrixSizeC=10;
+// dcf debug above
     d_A = cublas::device_memory::allocate<T_IN>(matrixSizeA);
     d_B = cublas::device_memory::allocate<T_IN>(matrixSizeB);
     d_C = cublas::device_memory::allocate<T_OUT>(matrixSizeC);
     
-    //printf("DEBUG: After  cublas::device_memory::allocate\n");
+    printf("DEBUG: After  cublas::device_memory::allocate\n");
 
     //cublas::cuda_check_error(cudaMemset(d_C, 0, matrixSizeC * sizeof(h_C[0])), "cudaMemset error");
     
@@ -395,6 +408,7 @@ test_engine(const BlasOpts& blas_opts) {
     if(lt_gemm<T_IN, T_OUT, T_MATH, T_SCALE>(ltHandle, blas_opts, d_A, d_B, d_C, alpha, beta, rowsA, rowsB, rowsC)) {
       has_error = true;  
     }
+
     test_ran = true;
 
     cublas::device_memory::free(d_A);
@@ -430,6 +444,8 @@ test_engine(const BlasOpts& blas_opts) {
 static void
 test_cublasLt(BlasOpts& blas_opts) {
   try{    
+printf("DEBUG: math_type %d  \n", blas_opts.math_type );
+
     switch(blas_opts.math_type) {
       case CUDA_R_32F: //sss A,B : FP32 ->  C FP32
         if ((blas_opts.input_type == CUDA_R_32F) &&
@@ -479,11 +495,13 @@ test_cublasLt(BlasOpts& blas_opts) {
       case CUDA_R_32I: {//bisb_imma
           int device_version = 0;
           cublas::cuda_check_error(get_device_version(device_version), "get device version failed");          
+/* dcf debug
           if (device_version < 750) {
             printf("not supported for the imma options\n");
 	        test_ran = false;
             return;
           }
+***/
           blas_opts.m_orderingA = CUBLASLT_ORDER_COL32;
           blas_opts.m_orderingB = device_version >= 800 ? CUBLASLT_ORDER_COL32_2R_4R4 : CUBLASLT_ORDER_COL4_4R2_8C;
           blas_opts.m_orderingC = CUBLASLT_ORDER_COL32;
@@ -581,15 +599,36 @@ int main(int argc, char *argv[]) {
   /* Initilize tests based on type of GPU
   */
   int memgb = 0;
-  string gpu_name(devprops[0].name);
+// dcf prod
+//  string gpu_name(devprops[0].name);
+
+// debug
+string gnames[] {"A100", "A100", "T4", "K80", "M60", "P40", "P100", "V100", "V100", "OTHER"};
+//string gnames[] {"V100", "V100"};
+bool firstA = true;
+bool firstV = true;
+
+for (auto& gpu_name : gnames) {
+
+
+
+// prod
+printf("DEBUG: TOP OF TEST =============================================================\n");
   while (true) {
     if (gpu_name.find("A100", 0) != string::npos) {
-        if (gpumem > 50) {
-          cout << "Initilizing V100 80 GB based test suite" << endl;
+/* prod
+        if (gpumem > 50)  *** open brace ***
+*/
+       // dcf debug
+        if (firstA) {
+          firstA=false;
+
+       //
+          cout << "Initilizing A100 80 GB based test suite" << endl;
           gst = GST(GST::A100_80);
           memgb = 80;
         }  else {
-          cout << "Initilizing V100 40 GB based test suite" << endl;
+          cout << "Initilizing A100 40 GB based test suite" << endl;
           gst = GST(GST::A100_40);
           memgb = 40;
         }
@@ -626,7 +665,14 @@ int main(int argc, char *argv[]) {
         break;
     }
     if (gpu_name.find("V100", 0) != string::npos) {
-        if (gpumem > 30) {
+
+/** prod
+        if (gpumem > 30) *** open brace **
+***/
+    // dcf debug
+        if (firstV) {
+          firstV=false;
+    //
           cout << "Initilizing V100 32 GB based test suite" << endl;
           gst = GST(GST::V100_32);
           memgb = 32;
@@ -645,6 +691,7 @@ int main(int argc, char *argv[]) {
 
   printf("GPU Memory: %lld, memgb: %d\n", (long long) gpumem, memgb);
   printf("\n\n");
+
 
   for (dev = 0; dev < deviceCount; dev++) {
 	CHECK(cudaSetDevice(dev));
@@ -708,7 +755,7 @@ int main(int argc, char *argv[]) {
         // cout << "DEBUG:" << "start test" << endl;
 
         /* Run the test */
-        test_cublasLt(blas_opts);
+                test_cublasLt(blas_opts);
 		printf("***** TEST %s On Device %d %s\n", gst.stress_tests[t_num].test_name, dev, devprops[dev].name);
 		if (!test_ran) 
 			printf("***** TEST DID NOT EXECUTE *****\n\n");
@@ -736,6 +783,7 @@ int main(int argc, char *argv[]) {
         sem_wait(&go);
 	}
   }
+} // dcf
   
   return ret;
 }
