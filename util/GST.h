@@ -188,8 +188,8 @@ private:
         stress_tests[3].test_state = 0;
         stress_tests[3].P_arg = "ddd";
         stress_tests[3].m_arg = 23506;
-        stress_tests[3].n_arg = 13730;
-        stress_tests[3].k_arg = 62830;
+        stress_tests[3].n_arg = 10730;
+        stress_tests[3].k_arg = 65830;
         stress_tests[3].ta_arg = 0;
         stress_tests[3].tb_arg = 1;
         stress_tests[3].B_arg = 0;
@@ -240,8 +240,8 @@ private:
         stress_tests[3].test_state = 0;
         stress_tests[3].P_arg = "ddd";
         stress_tests[3].m_arg = 44024;
-        stress_tests[3].n_arg = 39920;
-        stress_tests[3].k_arg = 40320;
+        stress_tests[3].n_arg = 30920;
+        stress_tests[3].k_arg = 48320;
         stress_tests[3].ta_arg = 0;
         stress_tests[3].tb_arg = 1;
         stress_tests[3].B_arg = 0;
@@ -346,7 +346,7 @@ private:
         stress_tests[3].P_arg = "zzz";
         stress_tests[3].m_arg = 5990;
         stress_tests[3].n_arg = 4092;
-        stress_tests[3].k_arg = 68080;
+        stress_tests[3].k_arg = 64080;
         stress_tests[3].ta_arg = 0;
         stress_tests[3].tb_arg = 1;
         stress_tests[3].B_arg = 0;
@@ -452,7 +452,7 @@ private:
         stress_tests[3].P_arg = "zzz";
         stress_tests[3].m_arg = 30432;
         stress_tests[3].n_arg = 30000;
-        stress_tests[3].k_arg = 20170;
+        stress_tests[3].k_arg = 17170;
         stress_tests[3].ta_arg = 0;
         stress_tests[3].tb_arg = 1;
         stress_tests[3].B_arg = 0;
@@ -504,7 +504,7 @@ private:
         stress_tests[3].P_arg = "zzz";
         stress_tests[3].m_arg = 4608;
         stress_tests[3].n_arg = 3456;
-        stress_tests[3].k_arg = 62291;
+        stress_tests[3].k_arg = 60291;
         stress_tests[3].ta_arg = 0;
         stress_tests[3].tb_arg = 1;
         stress_tests[3].B_arg = 0;
