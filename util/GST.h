@@ -189,7 +189,7 @@ private:
         stress_tests[3].P_arg = "ddd";
         stress_tests[3].m_arg = 23506;
         stress_tests[3].n_arg = 13730;
-        stress_tests[3].k_arg = 93830;
+        stress_tests[3].k_arg = 83830;
         stress_tests[3].ta_arg = 0;
         stress_tests[3].tb_arg = 1;
         stress_tests[3].B_arg = 0;
@@ -241,7 +241,7 @@ private:
         stress_tests[3].P_arg = "ddd";
         stress_tests[3].m_arg = 44024;
         stress_tests[3].n_arg = 39920;
-        stress_tests[3].k_arg = 70320;
+        stress_tests[3].k_arg = 60320;
         stress_tests[3].ta_arg = 0;
         stress_tests[3].tb_arg = 1;
         stress_tests[3].B_arg = 0;
@@ -294,7 +294,7 @@ private:
         stress_tests[3].P_arg = "zzz";
         stress_tests[3].m_arg = 12216;
         stress_tests[3].n_arg = 9912;
-        stress_tests[3].k_arg = 62585;
+        stress_tests[3].k_arg = 52585;
         stress_tests[3].ta_arg = 0;
         stress_tests[3].tb_arg = 1;
         stress_tests[3].B_arg = 0;
@@ -346,7 +346,7 @@ private:
         stress_tests[3].P_arg = "zzz";
         stress_tests[3].m_arg = 5990;
         stress_tests[3].n_arg = 4092;
-        stress_tests[3].k_arg = 102080;
+        stress_tests[3].k_arg = 92080;
         stress_tests[3].ta_arg = 0;
         stress_tests[3].tb_arg = 1;
         stress_tests[3].B_arg = 0;
@@ -399,7 +399,7 @@ private:
         stress_tests[3].P_arg = "zzz";
         stress_tests[3].m_arg = 12441;
         stress_tests[3].n_arg = 9331;
-        stress_tests[3].k_arg = 92189;
+        stress_tests[3].k_arg = 82189;
         stress_tests[3].ta_arg = 0;
         stress_tests[3].tb_arg = 1;
         stress_tests[3].B_arg = 0;
@@ -452,7 +452,7 @@ private:
         stress_tests[3].P_arg = "zzz";
         stress_tests[3].m_arg = 30432;
         stress_tests[3].n_arg = 30000;
-        stress_tests[3].k_arg = 35170;
+        stress_tests[3].k_arg = 25170;
         stress_tests[3].ta_arg = 0;
         stress_tests[3].tb_arg = 1;
         stress_tests[3].B_arg = 0;
@@ -504,7 +504,7 @@ private:
         stress_tests[3].P_arg = "zzz";
         stress_tests[3].m_arg = 4608;
         stress_tests[3].n_arg = 3456;
-        stress_tests[3].k_arg = 92291;
+        stress_tests[3].k_arg = 82291;
         stress_tests[3].ta_arg = 0;
         stress_tests[3].tb_arg = 1;
         stress_tests[3].B_arg = 0;
