@@ -21,7 +21,7 @@ BEGIN {
 /matrixSizeA/ {A=$3; B=$5; C=$7}
 /PASSED/ {
   ratio=((A + B + C) * size[test]) / (targetgb * GB)
-  if (ratio > 0.80 && ratio  < 0.95) good=1; else good=0
+  if (ratio > 0.90 && ratio  < 0.96) good=1; else good=0
   printf("gpu %s test %s size %d A %d B %d C %d targetgb %d ratio %2.3f good %d\n", gpu, test, size[test], A, B, C, targetgb, ratio, good)
 } '
 
