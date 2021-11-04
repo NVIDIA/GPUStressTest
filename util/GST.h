@@ -409,7 +409,7 @@ private:
         stress_tests[4].P_arg = "hss";
         stress_tests[4].m_arg = 20883;
         stress_tests[4].n_arg = 14525;
-        stress_tests[4].k_arg = 255379;
+        stress_tests[4].k_arg = 299379;
         stress_tests[4].ta_arg = 0;
         stress_tests[4].tb_arg = 1;
         stress_tests[4].B_arg = 0;
