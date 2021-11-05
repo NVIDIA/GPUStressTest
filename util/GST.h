@@ -241,7 +241,7 @@ private:
         stress_tests[3].P_arg = "ddd";
         stress_tests[3].m_arg = 44024;
         stress_tests[3].n_arg = 30920;
-        stress_tests[3].k_arg = 38320;
+        stress_tests[3].k_arg = 48320;
         stress_tests[3].ta_arg = 0;
         stress_tests[3].tb_arg = 1;
         stress_tests[3].B_arg = 0;
@@ -462,7 +462,7 @@ private:
         stress_tests[4].P_arg = "hss";
         stress_tests[4].m_arg = 36864;
         stress_tests[4].n_arg = 27048;
-        stress_tests[4].k_arg = 240022;
+        stress_tests[4].k_arg = 200022;
         stress_tests[4].ta_arg = 0;
         stress_tests[4].tb_arg = 1;
         stress_tests[4].B_arg = 0;
