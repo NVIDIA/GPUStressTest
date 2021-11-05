@@ -2,9 +2,10 @@
 
 input=${1:-gst.out}
 
-# Empiriacly tge FP64 test appares to allocate 16 bytes per matrix element
-# is this actually C64 ?????  
-# ALso the XX32 are showing up as 2 byes 
+# Empirically the FP64 test appears to allocate 16 bytes per matrix element
+# is this actually C64 ?????
+# Also the XX32 are showing up as 2 byes ?
+
 cat $input | awk ' 
 BEGIN {
   GB=1073741824
