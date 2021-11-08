@@ -204,11 +204,11 @@ lt_gemm(cublasLtHandle_t ltHandle,
     */
 
     cublas::cublas_check_error(cublasLtMatmulDescSetAttribute(matmulDesc, CUBLASLT_MATMUL_DESC_TRANSB, &blas_opts.transb, sizeof(blas_opts.transb)),
-                               "set DESC_TRANSB failed");
+           "set DESC_TRANSB failed");
     cublas::cublas_check_error(cublasLtMatmulDescSetAttribute(matmulDesc, CUBLASLT_MATMUL_DESC_TRANSA, &blas_opts.transa, sizeof(blas_opts.transa)),
-                               "set DESC_TRANSA failed");
-                                   cublas::cublas_check_error(cublasLtMatmulDescSetAttribute(matmulDesc, CUBLASLT_MATMUL_DESC_TRANSC, &blas_opts.transc, sizeof(blas_opts.transc)),
-                               "set DESC_TRANSC failed");
+           "set DESC_TRANSA failed");
+    cublas::cublas_check_error(cublasLtMatmulDescSetAttribute(matmulDesc, CUBLASLT_MATMUL_DESC_TRANSC, &blas_opts.transc, sizeof(blas_opts.transc)),
+           "set DESC_TRANSC failed");
 
 
     // ---------------------------------------------------------------------------------------------
@@ -216,22 +216,23 @@ lt_gemm(cublasLtHandle_t ltHandle,
 
     cublas::cublas_check_error(cublasLtMatrixLayoutCreate(&AtransformDesc, blas_opts.input_type, 
            blas_opts.transa == CUBLAS_OP_N ? blas_opts.m : blas_opts.k, blas_opts.transa == CUBLAS_OP_N ? blas_opts.k : blas_opts.m, ldatransform),
-                               "create MatrixLayout for AtransformDesc failed");
+           "create MatrixLayout for AtransformDesc failed");
     cublas::cublas_check_error(cublasLtMatrixLayoutSetAttribute(
-        AtransformDesc, CUBLASLT_MATRIX_LAYOUT_ORDER, &blas_opts.m_orderingA, sizeof(blas_opts.m_orderingA)),
-        "set LAYOUT_ORDER for AtransformDesc failed");
+            AtransformDesc, CUBLASLT_MATRIX_LAYOUT_ORDER, &blas_opts.m_orderingA, sizeof(blas_opts.m_orderingA)),
+            "set LAYOUT_ORDER for AtransformDesc failed");
     cublas::cublas_check_error(cublasLtMatrixLayoutCreate(&BtransformDesc, blas_opts.input_type, 
-      blas_opts.transb == CUBLAS_OP_N ? blas_opts.k : blas_opts.n, blas_opts.transb == CUBLAS_OP_N ? blas_opts.n : blas_opts.k, ldbtransform),
-                               "create MatrixLayout for BtransformDesc failed");
+            blas_opts.transb == CUBLAS_OP_N ? blas_opts.k : blas_opts.n, blas_opts.transb == CUBLAS_OP_N ? blas_opts.n : blas_opts.k, ldbtransform),
+           "create MatrixLayout for BtransformDesc failed");
     cublas::cublas_check_error(cublasLtMatrixLayoutSetAttribute(
-        BtransformDesc, CUBLASLT_MATRIX_LAYOUT_ORDER, &blas_opts.m_orderingB, sizeof(blas_opts.m_orderingB)),
-        "set LAYOUT_ORDER for BtransformDesc failed");
+            BtransformDesc, CUBLASLT_MATRIX_LAYOUT_ORDER, &blas_opts.m_orderingB, sizeof(blas_opts.m_orderingB)),
+            "set LAYOUT_ORDER for BtransformDesc failed");
 
     cublas::cublas_check_error(cublasLtMatrixLayoutCreate(&CtransformDesc, blas_opts.output_type, blas_opts.m, blas_opts.n, ldctransform),
-                               "create MatrixLayout for CtransformDesc failed");
+           "create MatrixLayout for CtransformDesc failed");
     cublas::cublas_check_error(cublasLtMatrixLayoutSetAttribute(
-        CtransformDesc, CUBLASLT_MATRIX_LAYOUT_ORDER, &blas_opts.m_orderingC, sizeof(blas_opts.m_orderingC)),
-        "set LAYOUT_ORDER for CtransformDesc failed");
+           CtransformDesc, CUBLASLT_MATRIX_LAYOUT_ORDER, &blas_opts.m_orderingC, sizeof(blas_opts.m_orderingC)),
+           "set LAYOUT_ORDER for CtransformDesc failed");
+
     // ---------------------------------------------------------------------------------------------
     // computation
     char ta = operation_to_char(blas_opts.transa);
@@ -253,7 +254,7 @@ lt_gemm(cublasLtHandle_t ltHandle,
     high_resolution_clock::time_point start = high_resolution_clock::now();
 
     for (int i = 0; i < blas_opts.timing_loop; ++i) {
-      cublas::cublas_check_error(cublasLtMatmul(ltHandle,
+        cublas::cublas_check_error(cublasLtMatmul(ltHandle,
                                                 matmulDesc,
                                                 &alpha,
                                                 A,
@@ -436,7 +437,8 @@ test_engine(const BlasOpts& blas_opts) {
 static void
 test_cublasLt(BlasOpts& blas_opts) {
   try{    
-printf("DEBUG: math_type %d  \n", blas_opts.math_type );
+
+//printf("DEBUG: math_type %d  \n", blas_opts.math_type );
 
     switch(blas_opts.math_type) {
       case CUDA_R_32F: //sss A,B : FP32 ->  C FP32
