@@ -284,7 +284,7 @@ private:
         stress_tests[2].P_arg = "hhh";
         stress_tests[2].m_arg = 16064;
         stress_tests[2].n_arg = 20608;
-        stress_tests[2].k_arg = 102750;
+        stress_tests[2].k_arg = 192750;
         stress_tests[2].ta_arg = 0;
         stress_tests[2].tb_arg = 1;
         stress_tests[2].B_arg = 0;
