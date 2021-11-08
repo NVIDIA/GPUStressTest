@@ -637,7 +637,7 @@ printf("DEBUG: TOP OF TEST =====================================================
     if (gpu_name.find("T4", 0) != string::npos) {
         cout << "Initilizing T4 based test suite" << endl;
         gst = GST(GST::T4);
-        memgb = 16;
+        memgb = 15;
         break;
     }
     if (gpu_name.find("K80", 0) != string::npos) {
