@@ -58,6 +58,10 @@
 #include "common.h"
 #include <cuda_runtime.h>
 
+/* fault injection */
+#include <thread>        
+#include <chrono>         
+
 /* watchdog includes; POSIX support on Windows with:
 ** 
 https://docs.microsoft.com/en-us/cpp/build/vcpkg?view=vs-2019
@@ -90,9 +94,9 @@ struct test_state {
 bool has_error = false;
 bool test_ran = true;
 struct test_state tstate[NUM_TESTS];
-int tests_done = 0;
-int test_hung = 0;
-int watchdog_bailed = 0;
+bool tests_done = false;
+bool test_hung = false;
+bool watchdog_bailed = false;
 
 /*
  * Semaphores used for watchdog implementation:
@@ -126,20 +130,19 @@ void* watchdog(void* in)
         if ((n == -1) && (errno == ETIMEDOUT) && (tstate[i].test_state == 1)) {
             printf("TEST %s appears to be hung\n", tstate[i].test_name);
             printf("Terminating stress testing...\n");
-            exit(-1);
-        }
-        else if ((n == 0) && (tstate[i].test_state == 0)) {
-            printf("TEST %d, %s DONE\n", i % NUM_TESTS, tstate[i % NUM_TESTS].test_name);
+            test_hung = true;
+            sem_post(&go);
+            break;
         }
         else if (n == -1) {
             perror("WATCHDOG sem_timedwait\n");
             printf("WATCHDOG thread exiting....\n");
-            watchdog_bailed = 1;
+            watchdog_bailed = true;
             pthread_exit(NULL);
         }
         sem_post(&go);
         i++;
-    } while ((tests_done != 1) || (test_hung != 1));
+    } while ((tests_done != true) || (test_hung != true));
 
     printf("WATCHDOG thread exiting....\n");
     pthread_exit(NULL);
@@ -239,7 +242,7 @@ lt_gemm(cublasLtHandle_t ltHandle,
     char tb = operation_to_char(blas_opts.transb);
 
     printf("#### args: ta=%c tb=%c m=%d n=%d k=%d", ta, tb, blas_opts.m, blas_opts.n, blas_opts.k);
-    printf("#### args: lda=%d ldb=%d ldc=%d loop=%d\n", ldatransform, ldbtransform, ldctransform, blas_opts.timing_loop);   
+    printf("lda=%d ldb=%d ldc=%d loop=%d\n", ldatransform, ldbtransform, ldctransform, blas_opts.timing_loop);   
 
     /*
     printf ("#### args: ta=%c tb=%c m=%d n=%d k=%d", ta, tb, blas_opts.m, blas_opts.n, blas_opts.k);
@@ -384,13 +387,13 @@ test_engine(const BlasOpts& blas_opts) {
     matrixSizeB = (size_t)rowsB * colsB;
     matrixSizeC = (size_t)rowsC * colsC;
 
-    printf("DEBUG: matrixSizeA %ld matrixSizeB %ld matrixSizeC %ld \n", matrixSizeA, matrixSizeB, matrixSizeC);
+    printf("#### args: matrixSizeA %lld matrixSizeB %lld matrixSizeC %lld \n", matrixSizeA, matrixSizeB, matrixSizeC);
 
     d_A = cublas::device_memory::allocate<T_IN>(matrixSizeA);
     d_B = cublas::device_memory::allocate<T_IN>(matrixSizeB);
     d_C = cublas::device_memory::allocate<T_OUT>(matrixSizeC);
     
-    printf("DEBUG: After  cublas::device_memory::allocate\n");
+    //printf("DEBUG: After  cublas::device_memory::allocate\n");
 
     //cublas::cuda_check_error(cudaMemset(d_C, 0, matrixSizeC * sizeof(h_C[0])), "cudaMemset error");
     
@@ -438,7 +441,7 @@ static void
 test_cublasLt(BlasOpts& blas_opts) {
   try{    
 
-//printf("DEBUG: math_type %d  \n", blas_opts.math_type );
+    printf("#### math_type %d  \n", blas_opts.math_type );
 
     switch(blas_opts.math_type) {
       case CUDA_R_32F: //sss A,B : FP32 ->  C FP32
@@ -473,11 +476,14 @@ test_cublasLt(BlasOpts& blas_opts) {
         } 
         break;
       case CUDA_C_64F: // zzz 
-        if ((blas_opts.input_type == CUDA_C_64F) &&
-            (blas_opts.output_type == CUDA_C_64F) &&
-            (blas_opts.scale_type == CUDA_C_64F)) {
-          test_engine<cuDoubleComplex, cuDoubleComplex, cuDoubleComplex, cuDoubleComplex>(blas_opts);
-        }  
+          if ((blas_opts.input_type == CUDA_C_64F) &&
+              (blas_opts.output_type == CUDA_C_64F) &&
+              (blas_opts.scale_type == CUDA_C_64F)) {
+              test_engine<cuDoubleComplex, cuDoubleComplex, cuDoubleComplex, cuDoubleComplex>(blas_opts);
+              /* DEBUG: test watchdog timeout detection and error exit by uncommenting to inject a timeout error
+              std::this_thread::sleep_for(std::chrono::seconds(600));
+              */
+          }
         break;
       case CUDA_R_16F: // hhh   
         if ((blas_opts.input_type == CUDA_R_16F) &&
@@ -712,7 +718,7 @@ int main(int argc, char *argv[]) {
         blas_opts.beta = 0.0f;
         blas_opts.beta_opt = true;
         
-        printf("***** STARTING TEST %d: %s On Device %d %s\n", t_num, gst.stress_tests[t_num].test_name, dev, devprops[dev].name);
+        printf("\n***** STARTING TEST %d: %s On Device %d %s\n", t_num, gst.stress_tests[t_num].test_name, dev, devprops[dev].name);
         tstate[t_num].test_name = gst.stress_tests[t_num].test_name;
         tstate[t_num].test_state = 1;
         tstate[t_num].start_time = time(NULL);
@@ -723,17 +729,18 @@ int main(int argc, char *argv[]) {
         // cout << "DEBUG:" << "start test" << endl;
 
         /* Run the test */
-                test_cublasLt(blas_opts);
+        test_cublasLt(blas_opts);
 		printf("***** TEST %s On Device %d %s\n", gst.stress_tests[t_num].test_name, dev, devprops[dev].name);
 		if (!test_ran) 
 			printf("***** TEST DID NOT EXECUTE *****\n\n");
 		else {
-			if (has_error == true) {
+			if (has_error == true || test_hung == true) {
 				printf("***** TEST FAILED ****\n\n");
                                 ret = -1;
+                                break;
                         }
 			else
-				printf("***** TEST PASSED ****\n\n");
+				printf("***** TEST PASSED ****\n");
 		}
         tstate[t_num].end_time = time(NULL);
         tstate[t_num].test_state = 0;
@@ -742,7 +749,7 @@ int main(int argc, char *argv[]) {
         cudaDeviceReset();
 
         if (t_num == NUM_TESTS)
-            tests_done = 1;
+            tests_done = true;
 
             /* Signal watchdog test finished*/
             sem_post(&done);
@@ -752,5 +759,6 @@ int main(int argc, char *argv[]) {
 	}
   }
   
-  return ret;
+  exit(ret);
 }
+
