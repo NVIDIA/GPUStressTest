@@ -177,9 +177,9 @@ private:
         stress_tests[2].test_name = "TF32";
         stress_tests[2].test_state = 0;
         stress_tests[2].P_arg = "sss_fast_tf32";
-        stress_tests[2].m_arg = 209712;
+        stress_tests[2].m_arg = 100712;
         stress_tests[2].n_arg = 68472;
-        stress_tests[2].k_arg = 18216;
+        stress_tests[2].k_arg = 17216;
         stress_tests[2].ta_arg = 1;
         stress_tests[2].tb_arg = 0;
         stress_tests[2].B_arg = 0;
@@ -197,9 +197,9 @@ private:
         stress_tests[4].test_name = "FP32";
         stress_tests[4].test_state = 0;
         stress_tests[4].P_arg = "sss";
-        stress_tests[4].m_arg = 132712;
+        stress_tests[4].m_arg = 100712;
         stress_tests[4].n_arg = 58640;
-        stress_tests[4].k_arg = 65072;
+        stress_tests[4].k_arg = 15072;
         stress_tests[4].ta_arg = 0;
         stress_tests[4].tb_arg = 1;
         stress_tests[4].B_arg = 0;
