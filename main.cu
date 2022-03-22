@@ -593,6 +593,7 @@ int main(int argc, char *argv[]) {
           }
       }
   }
+  gpumem /= (1024 * 1024 * 1024);
 
   /* Initilize tests based on type of GPU
   */
@@ -601,6 +602,8 @@ int main(int argc, char *argv[]) {
   
   while (true) {
     if (gpu_name.find("A100", 0) != string::npos) {
+
+printf("DEBUG: gpumem %lld\n", gpumem);
 
         if (gpumem > 40) {
           cout << "Initilizing A100 80 GB based test suite" << endl;
