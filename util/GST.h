@@ -70,6 +70,7 @@
   *     -ldc<number> : leading dimension of C , m by default
   *     -ta= op(A) {0=no transpose, 1=transpose, 2=hermitian}
   *     -tb= op(B) {0=no transpose, 1=transpose, 2=hermitian}
+  *     -dv=<int> select a GPU number to test
   *
   */
 

@@ -570,6 +570,23 @@ int main(int argc, char *argv[]) {
   }
 
   CommandLine command_line(argc, argv);
+
+  int device_arg = -1;
+  if (command_line.check_cmd_line_flag("dv")) {
+    command_line.get_cmd_line_argument("dv", device_arg);
+    // arg check 1
+    if (device_arg > deviceCount) {
+      printf("Device (dv) #%d parameter is too big\n", device_arg);
+      exit(1);
+    }
+    // arg check 2
+    if (device_arg < 0) {
+      printf("Device (dv) #%d parameter is too small\n", device_arg);
+      exit(1);
+    }
+    printf("Device #%d is selected\n", device_arg);
+  }
+
   BlasOpts blas_opts;
   parse_args(command_line, blas_opts);
   reset_blas_opts(command_line, blas_opts);
@@ -579,6 +596,10 @@ int main(int argc, char *argv[]) {
   size_t gpumem = 0LL;
   cudaDeviceProp devprops[MAX_NUM_GPUS] {};
   for (dev = 0; dev < deviceCount; dev++) {
+      if ((device_arg >= 0)  && (device_arg != dev)) {
+        printf("Device %d: skiped\n", dev);
+        continue;
+      }
       CHECK(cudaSetDevice(dev));
       CHECK(cudaGetDeviceProperties(&devprops[dev], dev));
       printf("Device %d: \"%s\"\n", dev, devprops[dev].name);
