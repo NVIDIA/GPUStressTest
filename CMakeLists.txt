@@ -5,7 +5,11 @@ set(GPUStressTest_HOME "/home/dfisk/GPUStressTest" CACHE STRING "" FORCE)
 set(LD_LIBRARY_PATH "${CUDA_HOME}/lib64;${LD_LIBRARY_PATH}")
 set(CMAKE_VERBOSE_MAKEFILE "ON" CACHE STRING "" FORCE)
 
+
 project(gst LANGUAGES CXX CUDA C)
+
+# For debugging matrix sizes; cmake -DDEBUG_MATRIX_SIZES:BOOL="ON" ..
+set(DEBUG_MATRIX_SIZES "OFF" CACHE STRING "")
 
 # Set a default build type if none was specified
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -20,10 +24,11 @@ endif()
 set(FLAGS "")
 set(CMAKE_CUDA_FLAGS "" CACHE STRING "" FORCE)
 # Note that cmake will insert semicolons between these item automatically...
-set(SM_LIST "70,75,80" CACHE STRING "Please input compute capability")
+set(SM_LIST_IN "70,75,80" CACHE STRING "Please input compute capability")
 MARK_AS_ADVANCED(SM_LIST)
-string(REPLACE "," " " DISPLAY_SMS_LIST ${SM_LIST})
-string(REPLACE "," ";" SMS_LIST ${SM_LIST})
+string(REPLACE "\," "\ " DISPLAY_SMS_LIST ${SM_LIST_IN})
+string(REPLACE "\," "\;" SM_LIST ${SM_LIST_IN})
+
 foreach(SM ${SMS_LIST})
     string(APPEND CMAKE_CUDA_FLAGS " -gencode arch=compute_${SM},code=sm_${SM}")
 endforeach(SM)
@@ -71,6 +76,12 @@ else() #NVCC
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcudafe --display_error_number") # Show error/warning numbers
 endif()
 
+if(DEBUG_MATRIX_SIZES MATCHES ON)
+message("DEBUG_MATRIX_SIZES ")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -DDEBUG_MATRIX_SIZES")
+endif()
+
+
 get_filename_component(CUDA_COMPILER_DIR ${CMAKE_CUDA_COMPILER} DIRECTORY)
 set(CUDA_TOOLKIT_ROOT_DIR ${CUDA_COMPILER_DIR}/..)
 message(status " CUDA_TOOLKIT_ROOT_DIR: ${CUDA_TOOLKIT_ROOT_DIR}")
@@ -86,6 +97,7 @@ LIST(APPEND SRC_FILES
     )
 
 add_executable(gst main.cu ${SRC_FILES})
+set_target_properties(gst PROPERTIES CUDA_ARCHITECTURES ${SM_LIST})
 target_link_libraries(gst cublas cublasLt)
 
 

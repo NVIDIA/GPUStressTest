@@ -391,8 +391,14 @@ test_engine(const BlasOpts& blas_opts) {
 
 
 // ----------------- debug below 
+#ifdef DEBUG_MATRIX_SIZES
 printf("***** TEST PASSED ****\n");
 return;
+#else
+printf("DEBUG_MATRIX_SIZES NOT SET\n");
+#endif
+
+
 
 // ------------------ debug above 
 
