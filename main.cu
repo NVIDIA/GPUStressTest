@@ -641,6 +641,17 @@ int main(int argc, char *argv[]) {
 // ------------------------ debug below
 // These entries should match GST::test_suite; clever C++ way to range over the enum and cast to string not obvious...
 for (string gpu_name :  {"T4", "A100_40", "A100_80", "K80", "M60", "P40", "P100", "H100", "V100_16", "V100_32", "Generic"}) {
+
+if (!gpu_name.compare(string("A100_80"))) { 
+        printf("set A100_80\n");
+        gpumem = 80;
+}
+else if (!gpu_name.compare(string("V100_32"))) {
+        printf("set V100_32\n");
+        gpumem = 32;
+}
+
+
 printf("DEBUG_MATRIX_SIZES: Checking matrix size only (no CUDA execution) for: %s\n", gpu_name.c_str());
 #endif
 // ------------------------ debug above
@@ -818,6 +829,7 @@ printf("DEBUG_MATRIX_SIZES: Checking matrix size only (no CUDA execution) for: %
   }
 //------------------- debug below
 #ifdef DEBUG_MATRIX_SIZES
+    gpumem=0;
 }
 #endif
 // ----------------- debug above
