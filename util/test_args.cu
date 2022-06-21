@@ -243,6 +243,7 @@ usage ( void ){
   printf( "-ldc<number> : leading dimension of C , m by default\n");
   printf( "-ta= op(A) {0=no transpose, 1=transpose, 2=hermitian}\n");
   printf( "-tb= op(B) {0=no transpose, 1=transpose, 2=hermitian}\n");
+  printf( "-dv=<int> select a GPU number to test\n");
 }
 
 void reset_blas_opts(CommandLine& command_line, BlasOpts &blas_opts)
