@@ -32,4 +32,9 @@ vcpkg install pthreads:x64-windows
 
 The project build properties in VSC need to be modified to point to the installation location of GPUStreesTest to find it’s util folder.
 
+To allow all supported GPU types to mock execution to tune / check matrix sizes use:
+$ cd build
+$ cmake -DDEBUG_MATRIX_SIZES:BOOL="ON" ..
+$ ./gst > gst.out
+$ ../util/parse_memory_targets.bash
 

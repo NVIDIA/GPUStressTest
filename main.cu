@@ -397,9 +397,6 @@ return;
 #else
 printf("DEBUG_MATRIX_SIZES NOT SET\n");
 #endif
-
-
-
 // ------------------ debug above 
 
     d_A = cublas::device_memory::allocate<T_IN>(matrixSizeA);
@@ -509,15 +506,15 @@ test_cublasLt(BlasOpts& blas_opts) {
       case CUDA_R_32I: {//bisb_imma
           int device_version = 0;
           cublas::cuda_check_error(get_device_version(device_version), "get device version failed");          
-// --------------- debug below (commend out)
-/**
+// --------------- debug below 
+#ifndef DEBUG_MATRIX_SIZES
           if (device_version < 750) {
             printf("not supported for the imma options\n");
 	        test_ran = false;
             return;
           }
-**/
-// --------------- debug above (commend out)
+#endif
+// --------------- debug above
           blas_opts.m_orderingA = CUBLASLT_ORDER_COL32;
           blas_opts.m_orderingB = device_version >= 800 ? CUBLASLT_ORDER_COL32_2R_4R4 : CUBLASLT_ORDER_COL4_4R2_8C;
           blas_opts.m_orderingC = CUBLASLT_ORDER_COL32;
@@ -637,15 +634,15 @@ int main(int argc, char *argv[]) {
   /* Initilize tests based on type of GPU
   */
   int memgb = 0;
-//  string gpu_name(devprops[0].name);
 
+#ifndef DEBUG_MATRIX_SIZES
+  string gpu_name(devprops[0].name);
+#else
 // ------------------------ debug below
-//string gpu_name("H100");
-
-for (string gpu_name : {string("V100_32"), string("H100")}) {
-
-printf("DEBUG: fake test name %s\n", gpu_name.c_str());
-
+// These entries should match GST::test_suite; clever C++ way to range over the enum and cast to string not obvious...
+for (string gpu_name :  {"T4", "A100_40", "A100_80", "K80", "M60", "P40", "P100", "H100", "V100_16", "V100_32", "Generic"}) {
+printf("DEBUG_MATRIX_SIZES: Checking matrix size only (no CUDA execution) for: %s\n", gpu_name.c_str());
+#endif
 // ------------------------ debug above
   
   while (true) {
@@ -796,9 +793,11 @@ printf("DEBUG: fake test name %s\n", gpu_name.c_str());
                     break;
                 }
             else
+#ifndef DEBUG_MATRIX_SIZES
 // ----------------------- debug below
-                //printf("***** TEST PASSED ****\n");
+                printf("***** TEST PASSED ****\n");
 // ----------------------- debug above (commend out)
+#endif
               continue;
             }
             tstate[t_num].end_time = time(NULL);
@@ -818,7 +817,9 @@ printf("DEBUG: fake test name %s\n", gpu_name.c_str());
       }
   }
 //------------------- debug below
+#ifdef DEBUG_MATRIX_SIZES
 }
+#endif
 // ----------------- debug above
   
   exit(ret);
