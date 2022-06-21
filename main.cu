@@ -1,4 +1,4 @@
-/* 
+/**
  * The MIT License (MIT)
  *
  * Copyright (c) 2020 NVIDIA
@@ -389,10 +389,18 @@ test_engine(const BlasOpts& blas_opts) {
 
     printf("#### args: matrixSizeA %lld matrixSizeB %lld matrixSizeC %lld \n", matrixSizeA, matrixSizeB, matrixSizeC);
 
+
+// ----------------- debug below 
+printf("***** TEST PASSED ****\n");
+return;
+
+// ------------------ debug above 
+
     d_A = cublas::device_memory::allocate<T_IN>(matrixSizeA);
     d_B = cublas::device_memory::allocate<T_IN>(matrixSizeB);
     d_C = cublas::device_memory::allocate<T_OUT>(matrixSizeC);
     
+
     //printf("DEBUG: After  cublas::device_memory::allocate\n");
 
     //cublas::cuda_check_error(cudaMemset(d_C, 0, matrixSizeC * sizeof(h_C[0])), "cudaMemset error");
@@ -495,11 +503,15 @@ test_cublasLt(BlasOpts& blas_opts) {
       case CUDA_R_32I: {//bisb_imma
           int device_version = 0;
           cublas::cuda_check_error(get_device_version(device_version), "get device version failed");          
+// --------------- debug below (commend out)
+/**
           if (device_version < 750) {
             printf("not supported for the imma options\n");
 	        test_ran = false;
             return;
           }
+**/
+// --------------- debug above (commend out)
           blas_opts.m_orderingA = CUBLASLT_ORDER_COL32;
           blas_opts.m_orderingB = device_version >= 800 ? CUBLASLT_ORDER_COL32_2R_4R4 : CUBLASLT_ORDER_COL4_4R2_8C;
           blas_opts.m_orderingC = CUBLASLT_ORDER_COL32;
@@ -619,7 +631,16 @@ int main(int argc, char *argv[]) {
   /* Initilize tests based on type of GPU
   */
   int memgb = 0;
-  string gpu_name(devprops[0].name);
+//  string gpu_name(devprops[0].name);
+
+// ------------------------ debug below
+//string gpu_name("H100");
+
+for (string gpu_name : {string("V100_32"), string("H100")}) {
+
+printf("DEBUG: fake test name %s\n", gpu_name.c_str());
+
+// ------------------------ debug above
   
   while (true) {
     if (gpu_name.find("A100", 0) != string::npos) {
@@ -678,6 +699,12 @@ int main(int argc, char *argv[]) {
         }
         break;
     }
+    if (gpu_name.find("H100", 0) != string::npos) {
+        cout << "Initilizing H100 based test suite" << endl;
+        gst = GST(GST::H100);
+        memgb = 95;
+        break;
+    }
     cout << "Initilizing Generic test suite" << endl;
     gst = GST(GST::Generic);
     memgb = 8;
@@ -697,89 +724,96 @@ int main(int argc, char *argv[]) {
 
 	for (int t_num = 0; t_num  < NUM_TESTS; t_num++) {
 
-       /* Abort if watchdog has died */
-        if (watchdog_bailed) {
-            printf("WATCHDOG Thread exited...\n");
-            printf("GPUstress terminating\n");
-            exit(-1);
-        }
-        reset_blas_opts(command_line, blas_opts);
-        /* Debug
-        gst.dump_test_args(tix);
-        hello_world(blas_opts, gst.stress_tests[0].P_arg);
-        */
+            /* Abort if watchdog has died */
+            if (watchdog_bailed) {
+                printf("WATCHDOG Thread exited...\n");
+                printf("GPUstress terminating\n");
+                exit(-1);
+            }
+            reset_blas_opts(command_line, blas_opts);
+            /* Debug
+            gst.dump_test_args(tix);
+            hello_world(blas_opts, gst.stress_tests[0].P_arg);
+            */
 
-        /* Parse command line optioms */
-        bool p_parse = parse_in_math_scale_out_type(blas_opts, gst.stress_tests[t_num].P_arg);
-        // cout << "DEBUG:" << "after parse" << endl;
-		if (!p_parse) {
-			printf("p_parse failed\n");
-			exit(-1);
-		}
-        // cout << "DEBUG:" << "set opts" << endl;
+            /* Parse command line optioms */
+            bool p_parse = parse_in_math_scale_out_type(blas_opts, gst.stress_tests[t_num].P_arg);
+            // cout << "DEBUG:" << "after parse" << endl;
+            if (!p_parse) {
+                printf("p_parse failed\n");
+                exit(-1);
+            }
+            // cout << "DEBUG:" << "set opts" << endl;
 
-		blas_opts.m = gst.stress_tests[t_num].m_arg;
-		blas_opts.n = gst.stress_tests[t_num].n_arg;
-		blas_opts.k = gst.stress_tests[t_num].k_arg;
-        blas_opts.m_opt = true;
-        blas_opts.n_opt = true;
-        blas_opts.k_opt = true;
+            blas_opts.m = gst.stress_tests[t_num].m_arg;
+            blas_opts.n = gst.stress_tests[t_num].n_arg;
+            blas_opts.k = gst.stress_tests[t_num].k_arg;
+            blas_opts.m_opt = true;
+            blas_opts.n_opt = true;
+            blas_opts.k_opt = true;
 
-        if (gst.stress_tests[t_num].ta_arg == 1)
-            blas_opts.transa_opt = true;
-        else {
-            blas_opts.transa_opt = false;
-            blas_opts.transa = (cublasOperation_t)0;
-        }
-        if (gst.stress_tests[t_num].tb_arg == 1)
-            blas_opts.transb_opt = true;
-        else {
-            blas_opts.transb_opt = false;
-            blas_opts.transb = (cublasOperation_t)0;
-        }
-        blas_opts.beta = 0.0f;
-        blas_opts.beta_opt = true;
+            if (gst.stress_tests[t_num].ta_arg == 1)
+                blas_opts.transa_opt = true;
+            else {
+                blas_opts.transa_opt = false;
+                blas_opts.transa = (cublasOperation_t)0;
+            }
+            if (gst.stress_tests[t_num].tb_arg == 1)
+                blas_opts.transb_opt = true;
+            else {
+                blas_opts.transb_opt = false;
+                blas_opts.transb = (cublasOperation_t)0;
+            }
+            blas_opts.beta = 0.0f;
+            blas_opts.beta_opt = true;
         
-        printf("\n***** STARTING TEST %d: %s On Device %d %s\n", t_num, gst.stress_tests[t_num].test_name, dev, devprops[dev].name);
-        tstate[t_num].test_name = gst.stress_tests[t_num].test_name;
-        tstate[t_num].test_state = 1;
-        tstate[t_num].start_time = time(NULL);
-        // cout << "DEBUG:" << "signal wd" << endl;
+            printf("\n***** STARTING TEST %d: %s On Device %d %s\n", t_num, gst.stress_tests[t_num].test_name, dev, devprops[dev].name);
+            tstate[t_num].test_name = gst.stress_tests[t_num].test_name;
+            tstate[t_num].test_state = 1;
+            tstate[t_num].start_time = time(NULL);
+            // cout << "DEBUG:" << "signal wd" << endl;
         
-        /* Signal watchdog test started */
-        sem_post(&wd);
-        // cout << "DEBUG:" << "start test" << endl;
+            /* Signal watchdog test started */
+            sem_post(&wd);
+            // cout << "DEBUG:" << "start test" << endl;
 
-        /* Run the test */
-        test_cublasLt(blas_opts);
-		printf("***** TEST %s On Device %d %s\n", gst.stress_tests[t_num].test_name, dev, devprops[dev].name);
-		if (!test_ran) 
-			printf("***** TEST DID NOT EXECUTE *****\n\n");
-		else {
-			if (has_error == true || test_hung == true) {
-				printf("***** TEST FAILED ****\n\n");
-                                ret = -1;
-                                break;
-                        }
-			else
-				printf("***** TEST PASSED ****\n");
-		}
-        tstate[t_num].end_time = time(NULL);
-        tstate[t_num].test_state = 0;
-        printf("TEST TIME: %d seconds\n",(int)(tstate[t_num].end_time - tstate[t_num].start_time));
-        cudaDeviceSynchronize();
-        cudaDeviceReset();
+            /* Run the test */
+            test_cublasLt(blas_opts);
 
-        if (t_num == NUM_TESTS)
-            tests_done = true;
+            printf("***** TEST %s On Device %d %s\n", gst.stress_tests[t_num].test_name, dev, devprops[dev].name);
+            if (!test_ran) 
+                printf("***** TEST DID NOT EXECUTE *****\n\n");
+            else {
+                if (has_error == true || test_hung == true) {
+                    printf("***** TEST FAILED ****\n\n");
+                    ret = -1;
+                    break;
+                }
+            else
+// ----------------------- debug below
+                //printf("***** TEST PASSED ****\n");
+// ----------------------- debug above (commend out)
+              continue;
+            }
+            tstate[t_num].end_time = time(NULL);
+            tstate[t_num].test_state = 0;
+            printf("TEST TIME: %d seconds\n",(int)(tstate[t_num].end_time - tstate[t_num].start_time));
+            cudaDeviceSynchronize();
+            cudaDeviceReset();
+
+            if (t_num == NUM_TESTS)
+                tests_done = true;
 
             /* Signal watchdog test finished*/
             sem_post(&done);
 
-        /* wait for watchdog to signal next next test */
-        sem_wait(&go);
-	}
+            /* wait for watchdog to signal next next test */
+            sem_wait(&go);
+      }
   }
+//------------------- debug below
+}
+// ----------------- debug above
   
   exit(ret);
 }
