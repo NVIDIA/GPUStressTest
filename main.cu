@@ -388,14 +388,15 @@ test_engine(const BlasOpts& blas_opts) {
     matrixSizeC = (size_t)rowsC * colsC;
 
     printf("#### args: matrixSizeA %lld matrixSizeB %lld matrixSizeC %lld \n", matrixSizeA, matrixSizeB, matrixSizeC);
-
-
-// ----------------- debug below 
 #ifdef DEBUG_MATRIX_SIZES
+    printf("#### args: rowsA %lld colsA %lld rowsB  %lld colsB %lld   rowsC %lld colsC %lld \n", rowsA, colsA, rowsB, colsB, rowsC, colsC);
+#endif
+
+#ifdef DEBUG_MATRIX_SIZES
+printf("T_IN %s, T_OUT %s, T_MATH %s, T_SCALE %s \n", typeid(T_IN).name(), typeid(T_OUT).name(), typeid(T_MATH).name(), typeid(T_SCALE).name());
 printf("***** TEST PASSED ****\n");
 return;
 #endif
-// ------------------ debug above 
 
     d_A = cublas::device_memory::allocate<T_IN>(matrixSizeA);
     d_B = cublas::device_memory::allocate<T_IN>(matrixSizeB);
@@ -525,7 +526,6 @@ printf("%s\n", "test_engine<__half, __half, __half,__half>(blas_opts)");
       case CUDA_R_32I: {//bisb_imma
           int device_version = 0;
           cublas::cuda_check_error(get_device_version(device_version), "get device version failed");          
-// --------------- debug below 
 #ifndef DEBUG_MATRIX_SIZES
           if (device_version < 750) {
             printf("not supported for the imma options\n");
@@ -533,7 +533,6 @@ printf("%s\n", "test_engine<__half, __half, __half,__half>(blas_opts)");
             return;
           }
 #endif
-// --------------- debug above
           blas_opts.m_orderingA = CUBLASLT_ORDER_COL32;
           blas_opts.m_orderingB = device_version >= 800 ? CUBLASLT_ORDER_COL32_2R_4R4 : CUBLASLT_ORDER_COL4_4R2_8C;
           blas_opts.m_orderingC = CUBLASLT_ORDER_COL32;
@@ -663,7 +662,6 @@ int main(int argc, char *argv[]) {
 #ifndef DEBUG_MATRIX_SIZES
   string gpu_name(devprops[0].name);
 #else
-// ------------------------ debug below
 // These entries should match GST::test_suite; clever C++ way to range over the enum and cast to string not obvious...
 for (string gpu_name :  {"T4", "A100_40", "A100_80", "K80", "M60", "P40", "P100", "H100", "V100_16", "V100_32", "Generic"}) {
 
@@ -679,7 +677,6 @@ else if (!gpu_name.compare(string("V100_32"))) {
 
 printf("DEBUG_MATRIX_SIZES: Checking matrix size only (no CUDA execution) for: %s\n", gpu_name.c_str());
 #endif
-// ------------------------ debug above
   
   while (true) {
     if (gpu_name.find("A100", 0) != string::npos) {
@@ -831,9 +828,7 @@ printf("DEBUG_MATRIX_SIZES: Checking matrix size only (no CUDA execution) for: %
                 }
             else
 #ifndef DEBUG_MATRIX_SIZES
-// ----------------------- debug below
                 printf("***** TEST PASSED ****\n");
-// ----------------------- debug above (commend out)
 #endif
               continue;
             }
@@ -853,12 +848,10 @@ printf("DEBUG_MATRIX_SIZES: Checking matrix size only (no CUDA execution) for: %
             sem_wait(&go);
       }
   }
-//------------------- debug below
 #ifdef DEBUG_MATRIX_SIZES
     gpumem=0;
 }
 #endif
-// ----------------- debug above
   
   exit(ret);
 }
