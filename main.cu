@@ -394,8 +394,6 @@ test_engine(const BlasOpts& blas_opts) {
 #ifdef DEBUG_MATRIX_SIZES
 printf("***** TEST PASSED ****\n");
 return;
-#else
-printf("DEBUG_MATRIX_SIZES NOT SET\n");
 #endif
 // ------------------ debug above 
 
@@ -459,16 +457,25 @@ test_cublasLt(BlasOpts& blas_opts) {
         if ((blas_opts.input_type == CUDA_R_32F) &&
             (blas_opts.output_type == CUDA_R_32F) &&
             (blas_opts.scale_type == CUDA_R_32F)) {
+#ifdef DEBUG_MATRIX_SIZES
+printf("%s\n", "test_engine<float, float, float, float>(blas_opts)");
+#endif
           test_engine<float, float, float, float>(blas_opts);
         } //hss A,B FP16 ->  C FP32 
         if ((blas_opts.input_type == CUDA_R_16F) &&
             (blas_opts.output_type == CUDA_R_32F) &&
             (blas_opts.scale_type == CUDA_R_32F)) {
+#ifdef DEBUG_MATRIX_SIZES
+printf("%s\n", "test_engine<__half, float, float, float>(blas_opts)");
+#endif
           test_engine<__half, float, float, float>(blas_opts);
         } // hsh A,B FP16 ->  C FP16
         if ((blas_opts.input_type == CUDA_R_16F) &&
             (blas_opts.output_type == CUDA_R_16F) &&
             (blas_opts.scale_type == CUDA_R_32F)) {
+#ifdef DEBUG_MATRIX_SIZES
+printf("%s\n", "test_engine<__half, __half, float, float>(blas_opts)");
+#endif
           test_engine<__half, __half, float, float>(blas_opts);
         } 
         break;
@@ -476,6 +483,9 @@ test_cublasLt(BlasOpts& blas_opts) {
         if ((blas_opts.input_type == CUDA_C_32F) &&
             (blas_opts.output_type == CUDA_C_32F) &&
             (blas_opts.scale_type == CUDA_C_32F)) {
+#ifdef DEBUG_MATRIX_SIZES
+printf("%s\n", "test_engine<cuComplex, cuComplex, cuComplex, cuComplex>(blas_opts)");
+#endif
           test_engine<cuComplex, cuComplex, cuComplex, cuComplex>(blas_opts);
         } 
         break; 
@@ -483,6 +493,9 @@ test_cublasLt(BlasOpts& blas_opts) {
         if ((blas_opts.input_type == CUDA_R_64F) &&
             (blas_opts.output_type == CUDA_R_64F) &&
             (blas_opts.scale_type == CUDA_R_64F)) {
+#ifdef DEBUG_MATRIX_SIZES
+printf("%s\n", "test_engine<double, double, double, double>(blas_opts)");
+#endif
           test_engine<double, double, double, double>(blas_opts);
         } 
         break;
@@ -490,6 +503,9 @@ test_cublasLt(BlasOpts& blas_opts) {
           if ((blas_opts.input_type == CUDA_C_64F) &&
               (blas_opts.output_type == CUDA_C_64F) &&
               (blas_opts.scale_type == CUDA_C_64F)) {
+#ifdef DEBUG_MATRIX_SIZES
+printf("%s\n", "test_engine<cuDoubleComplex, cuDoubleComplex, cuDoubleComplex, cuDoubleComplex>(blas_opts)");
+#endif
               test_engine<cuDoubleComplex, cuDoubleComplex, cuDoubleComplex, cuDoubleComplex>(blas_opts);
               /* DEBUG: test watchdog timeout detection and error exit by uncommenting to inject a timeout error
               std::this_thread::sleep_for(std::chrono::seconds(600));
@@ -500,6 +516,9 @@ test_cublasLt(BlasOpts& blas_opts) {
         if ((blas_opts.input_type == CUDA_R_16F) &&
             (blas_opts.output_type == CUDA_R_16F) &&
             (blas_opts.scale_type == CUDA_R_16F)) {
+#ifdef DEBUG_MATRIX_SIZES
+printf("%s\n", "test_engine<__half, __half, __half,__half>(blas_opts)");
+#endif
           test_engine<__half, __half, __half,__half>(blas_opts);
         } 
         break;
@@ -524,11 +543,17 @@ test_cublasLt(BlasOpts& blas_opts) {
               (blas_opts.output_type == CUDA_R_8I) &&
               (blas_opts.scale_type == CUDA_R_32F)) {
               
+#ifdef DEBUG_MATRIX_SIZES
+printf("%s\n", "test_engine<int8_t, int8_t, int, float>(blas_opts)");
+#endif
             test_engine<int8_t, int8_t, int, float>(blas_opts);
           } //bii_imma
           if ((blas_opts.input_type == CUDA_R_8I) &&
               (blas_opts.output_type == CUDA_R_32I) &&
               (blas_opts.scale_type == CUDA_R_32I)) {
+#ifdef DEBUG_MATRIX_SIZES
+printf("%s\n", "test_engine<int8_t, int, int, int>(blas_opts)");
+#endif
             test_engine<int8_t, int, int, int>(blas_opts);
           } 
         }
@@ -782,6 +807,7 @@ printf("DEBUG_MATRIX_SIZES: Checking matrix size only (no CUDA execution) for: %
             blas_opts.beta_opt = true;
         
             printf("\n***** STARTING TEST %d: %s On Device %d %s\n", t_num, gst.stress_tests[t_num].test_name, dev, devprops[dev].name);
+            fflush(stdout);
             tstate[t_num].test_name = gst.stress_tests[t_num].test_name;
             tstate[t_num].test_state = 1;
             tstate[t_num].start_time = time(NULL);
@@ -793,8 +819,8 @@ printf("DEBUG_MATRIX_SIZES: Checking matrix size only (no CUDA execution) for: %
 
             /* Run the test */
             test_cublasLt(blas_opts);
-
             printf("***** TEST %s On Device %d %s\n", gst.stress_tests[t_num].test_name, dev, devprops[dev].name);
+
             if (!test_ran) 
                 printf("***** TEST DID NOT EXECUTE *****\n\n");
             else {
