@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.8.0)
 
 set(CUDA_HOME "/usr/local/cuda" CACHE STRING "" FORCE)
-set(GPUStressTest_HOME "/home/dfisk/GPUStressTest" CACHE STRING "" FORCE)
+set(GPUStressTest_HOME "/home/nv/dfisk/GPUStressTest" CACHE STRING "" FORCE)
 set(LD_LIBRARY_PATH "${CUDA_HOME}/lib64;${LD_LIBRARY_PATH}")
 set(CMAKE_VERBOSE_MAKEFILE "ON" CACHE STRING "" FORCE)
 
@@ -24,11 +24,12 @@ endif()
 set(FLAGS "")
 set(CMAKE_CUDA_FLAGS "" CACHE STRING "" FORCE)
 # Note that cmake will insert semicolons between these item automatically...
-set(SM_LIST_IN "70,75,80" CACHE STRING "Please input compute capability")
+set(SM_LIST_IN "70,75,80,90" CACHE STRING "Please input compute capability")
 MARK_AS_ADVANCED(SM_LIST)
 string(REPLACE "\," "\ " DISPLAY_SMS_LIST ${SM_LIST_IN})
 string(REPLACE "\," "\;" SM_LIST ${SM_LIST_IN})
 
+message("SMS_LIST:" ${SMS_LIST})
 foreach(SM ${SMS_LIST})
     string(APPEND CMAKE_CUDA_FLAGS " -gencode arch=compute_${SM},code=sm_${SM}")
 endforeach(SM)

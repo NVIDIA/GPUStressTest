@@ -174,6 +174,7 @@ lt_gemm(cublasLtHandle_t ltHandle,
         int ldc) {
   try {
     cublasLtMatmulDesc_t matmulDesc = NULL;
+    cublasLtEpilogue_t metmulEpilogue = CUBLASLT_EPILOGUE_DEFAULT;
     const size_t workspaceSize = 1024 * 1024 * 4;
     void * workspace;
     int ldatransform = blas_opts.m_orderingA == CUBLASLT_ORDER_COL ? lda : 32 * lda;
@@ -213,6 +214,8 @@ lt_gemm(cublasLtHandle_t ltHandle,
     cublas::cublas_check_error(cublasLtMatmulDescSetAttribute(matmulDesc, CUBLASLT_MATMUL_DESC_TRANSC, &blas_opts.transc, sizeof(blas_opts.transc)),
            "set DESC_TRANSC failed");
 
+    cublas::cublas_check_error(cublasLtMatmulDescSetAttribute(matmulDesc, CUBLASLT_MATMUL_DESC_EPILOGUE, &metmulEpilogue, sizeof(metmulEpilogue)),
+           "set CUBLASLT_MATMUL_DESC_EPILOGUE failed");
 
     // ---------------------------------------------------------------------------------------------
     // create descriptors for transformed matrices
@@ -223,6 +226,7 @@ lt_gemm(cublasLtHandle_t ltHandle,
     cublas::cublas_check_error(cublasLtMatrixLayoutSetAttribute(
             AtransformDesc, CUBLASLT_MATRIX_LAYOUT_ORDER, &blas_opts.m_orderingA, sizeof(blas_opts.m_orderingA)),
             "set LAYOUT_ORDER for AtransformDesc failed");
+
     cublas::cublas_check_error(cublasLtMatrixLayoutCreate(&BtransformDesc, blas_opts.input_type, 
             blas_opts.transb == CUBLAS_OP_N ? blas_opts.k : blas_opts.n, blas_opts.transb == CUBLAS_OP_N ? blas_opts.n : blas_opts.k, ldbtransform),
            "create MatrixLayout for BtransformDesc failed");
@@ -244,19 +248,30 @@ lt_gemm(cublasLtHandle_t ltHandle,
     printf("#### args: ta=%c tb=%c m=%d n=%d k=%d", ta, tb, blas_opts.m, blas_opts.n, blas_opts.k);
     printf(" lda=%d ldb=%d ldc=%d loop=%d\n", ldatransform, ldbtransform, ldctransform, blas_opts.timing_loop);   
 
-    /*
+    
     printf ("#### args: ta=%c tb=%c m=%d n=%d k=%d", ta, tb, blas_opts.m, blas_opts.n, blas_opts.k);
     printCuType( " alpha =", alpha);
     printCuType( " beta=", beta);
     printf("\n");
     printf("#### args: lda=%d ldb=%d ldc=%d loop=%d\n", ldatransform, ldbtransform, ldctransform, blas_opts.timing_loop);   
-    printf("#### input_type %d output_type %d scale_type %d math_type %d compute_type %d\n",
-        blas_opts.input_type, blas_opts.output_type, blas_opts.scale_type, blas_opts.math_type, blas_opts.compute_type);
-    */
+    printf("#### input_type %d output_type %d scale_type %d math_type %d compute_type %d\n"
+           "#### transa %d transb %d transc %d\n"
+           "#### lda %% 4 %d ldb %% 4 %d ldc %% 4 %d\n"
+           "#### m_orderingA %d m_orderingB %d m_orderingC %d\n"
+           "#### (matrix dims) m %% 4 %d k %% 4 %d\n"
+           "#### (matrix pointers) A %% 4 %d B %% 4 %d C %% 4 %d\n",
+           blas_opts.input_type, blas_opts.output_type, blas_opts.scale_type, blas_opts.math_type, blas_opts.compute_type,
+           blas_opts.transa, blas_opts.transb, blas_opts.transc,
+           blas_opts.lda % 4,  blas_opts.ldb % 4,  blas_opts.ldc % 4,
+           blas_opts.m_orderingA, blas_opts.m_orderingB, blas_opts.m_orderingC,
+           blas_opts.m % 4, blas_opts.k % 4,
+           (unsigned long long) A % 4, (unsigned long long) B % 4, (unsigned long long)C % 4);
+   
     using namespace std::chrono;
     high_resolution_clock::time_point start = high_resolution_clock::now();
 
     for (int i = 0; i < blas_opts.timing_loop; ++i) {
+    printf("DEBUG: cublasLtMatmul\n");
         cublas::cublas_check_error(cublasLtMatmul(ltHandle,
                                                 matmulDesc,
                                                 &alpha,
@@ -276,8 +291,6 @@ lt_gemm(cublasLtHandle_t ltHandle,
     }
 
     cublas::cuda_check_error(cudaDeviceSynchronize(), "cudaDeviceSynchronize failed");
-
-
 
     high_resolution_clock::time_point end = high_resolution_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(end - start);
@@ -536,8 +549,13 @@ printf("%s\n", "test_engine<__half, __half, __half,__half>(blas_opts)");
           blas_opts.m_orderingA = CUBLASLT_ORDER_COL32;
           blas_opts.m_orderingB = device_version >= 800 ? CUBLASLT_ORDER_COL32_2R_4R4 : CUBLASLT_ORDER_COL4_4R2_8C;
           blas_opts.m_orderingC = CUBLASLT_ORDER_COL32;
+printf("DEBUG: setting transa and transb\n");
+/** was
           blas_opts.transa = CUBLAS_OP_N;
           blas_opts.transb = CUBLAS_OP_T; 
+**/
+          blas_opts.transa = CUBLAS_OP_T;
+          blas_opts.transb = CUBLAS_OP_N; 
           if ((blas_opts.input_type == CUDA_R_8I) &&
               (blas_opts.output_type == CUDA_R_8I) &&
               (blas_opts.scale_type == CUDA_R_32F)) {
@@ -817,6 +835,8 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
             /* Signal watchdog test started */
             sem_post(&wd);
             // cout << "DEBUG:" << "start test" << endl;
+
+printf("DEBUG: transa %d transb %d \n", blas_opts.transa, blas_opts.transb);
 
             /* Run the test */
             test_cublasLt(blas_opts);

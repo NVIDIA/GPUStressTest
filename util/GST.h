@@ -117,14 +117,12 @@ public:
         case A100_40:
             init_a100_40();
             break;
+        case H100: // same as a100_80
         case A100_80:
             init_a100_80();
             break;
         case K80:
             init_k80();
-            break;
-        case H100:
-            init_h100();
             break;
         case P40:
             init_p40();
@@ -316,12 +314,25 @@ private:
 
 
     void init_a100_80() {
+/***
         stress_tests[0].test_name = "INT8";
         stress_tests[0].test_state = 0;
         stress_tests[0].P_arg = "bisb_imma";
         stress_tests[0].m_arg = 244872;
         stress_tests[0].n_arg = 117052;
         stress_tests[0].k_arg = 142437;
+        stress_tests[0].ta_arg = 1;
+        stress_tests[0].tb_arg = 0;
+        stress_tests[0].B_arg = 0;
+****/
+
+
+        stress_tests[0].test_name = "INT8";
+        stress_tests[0].test_state = 0;
+        stress_tests[0].P_arg = "bisb_imma";
+        stress_tests[0].m_arg = 8192;
+        stress_tests[0].n_arg = 3456;
+        stress_tests[0].k_arg = 16384;
         stress_tests[0].ta_arg = 1;
         stress_tests[0].tb_arg = 0;
         stress_tests[0].B_arg = 0;
@@ -520,59 +531,6 @@ private:
         stress_tests[4].m_arg = 20883;
         stress_tests[4].n_arg = 14525;
         stress_tests[4].k_arg = 299379;
-        stress_tests[4].ta_arg = 0;
-        stress_tests[4].tb_arg = 1;
-        stress_tests[4].B_arg = 0;
-    }
-
-
-    void init_h100() {
-        stress_tests[0].test_name = "INT8";
-        stress_tests[0].test_state = 0;
-        stress_tests[0].P_arg = "bisb_imma";
-        stress_tests[0].m_arg = 304872;
-        stress_tests[0].n_arg = 117052;
-        stress_tests[0].k_arg = 142437;
-        stress_tests[0].ta_arg = 1;
-        stress_tests[0].tb_arg = 0;
-        stress_tests[0].B_arg = 0;
-
-        stress_tests[1].test_name = "FP16";
-        stress_tests[1].test_state = 0;
-        stress_tests[1].P_arg = "hsh";
-        stress_tests[1].m_arg = 145928;
-        stress_tests[1].n_arg = 116944;
-        stress_tests[1].k_arg = 112144;
-        stress_tests[1].ta_arg = 0;
-        stress_tests[1].tb_arg = 1;
-        stress_tests[1].B_arg = 0;
-
-        stress_tests[2].test_name = "TF32";
-        stress_tests[2].test_state = 0;
-        stress_tests[2].P_arg = "sss_fast_tf32";
-        stress_tests[2].m_arg = 259712;
-        stress_tests[2].n_arg = 68472;
-        stress_tests[2].k_arg = 90432;
-        stress_tests[2].ta_arg = 1;
-        stress_tests[2].tb_arg = 0;
-        stress_tests[2].B_arg = 0;
-
-        stress_tests[3].test_name = "FP64";
-        stress_tests[3].test_state = 0;
-        stress_tests[3].P_arg = "ddd";
-        stress_tests[3].m_arg = 56024;
-        stress_tests[3].n_arg = 30920;
-        stress_tests[3].k_arg = 48320;
-        stress_tests[3].ta_arg = 0;
-        stress_tests[3].tb_arg = 1;
-        stress_tests[3].B_arg = 0;
-
-        stress_tests[4].test_name = "FP32";
-        stress_tests[4].test_state = 0;
-        stress_tests[4].P_arg = "sss";
-        stress_tests[4].m_arg = 162712;
-        stress_tests[4].n_arg = 58640;
-        stress_tests[4].k_arg = 170144;
         stress_tests[4].ta_arg = 0;
         stress_tests[4].tb_arg = 1;
         stress_tests[4].B_arg = 0;
