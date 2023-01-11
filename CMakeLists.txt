@@ -95,6 +95,7 @@ LIST(APPEND SRC_FILES
     ${PROJECT_SOURCE_DIR}/util/test_args.cu
     ${PROJECT_SOURCE_DIR}/util/measure.cc
     ${PROJECT_SOURCE_DIR}/util/device_info.cu
+    ${PROJECT_SOURCE_DIR}/util/test_util.cu
     )
 
 add_executable(gst main.cu ${SRC_FILES})

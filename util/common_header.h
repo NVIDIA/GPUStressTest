@@ -20,24 +20,6 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/******************************************************************************
- * Copyright (c) 2011-2020, NVIDIA CORPORATION.  All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are not permitted.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL NVIDIA CORPORATION BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- ******************************************************************************/
 
 #pragma once
 
@@ -63,6 +45,8 @@
 //#include <cublas_v2.h>
 #include <cublas_api.h>
 //#include <cuda_bf16.h>
+#include <cuda_fp8.h>
+
 
 
 using std::string;
@@ -85,7 +69,9 @@ struct BlasOpts {
   bool transb_opt;
   cublasOperation_t transc;
   bool transc_opt;
-  cudaDataType_t input_type;
+  cudaDataType_t input_type_a;
+  cudaDataType_t input_type_b;
+  cudaDataType_t input_type_c;
   cudaDataType_t output_type;
   cudaDataType_t scale_type;
   cudaDataType_t math_type;
@@ -107,12 +93,16 @@ struct BlasOpts {
   bool alpha_opt;
   float beta;
   bool beta_opt;
+  bool filling_zero;
   cublasLtOrder_t m_orderingA;
   bool m_orderingA_opt;
   cublasLtOrder_t m_orderingB;
   bool m_orderingB_opt;
   cublasLtOrder_t m_orderingC;
   bool m_orderingC_opt;
+  bool m_outOfPlace;
+  cublasLtEpilogue_t m_epilogue;
+  bool quick_autotuning;
 };
 
 template <typename T_MATH> void printGemmSOL(int mathMode, double computeSeconds, int iterations, int m, int n, int k, int algorithm);
