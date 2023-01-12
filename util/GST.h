@@ -296,25 +296,12 @@ private:
 
 
     void init_a100_80() {
-/***
         stress_tests[0].test_name = "INT8";
         stress_tests[0].test_state = 0;
         stress_tests[0].P_arg = "bisb_imma";
         stress_tests[0].m_arg = 244872;
         stress_tests[0].n_arg = 117052;
         stress_tests[0].k_arg = 142437;
-        stress_tests[0].ta_arg = 1;
-        stress_tests[0].tb_arg = 0;
-        stress_tests[0].B_arg = 0;
-****/
-
-
-        stress_tests[0].test_name = "INT8";
-        stress_tests[0].test_state = 0;
-        stress_tests[0].P_arg = "bisb_imma";
-        stress_tests[0].m_arg = 8192;
-        stress_tests[0].n_arg = 3456;
-        stress_tests[0].k_arg = 16384;
         stress_tests[0].ta_arg = 1;
         stress_tests[0].tb_arg = 0;
         stress_tests[0].B_arg = 0;
@@ -329,12 +316,25 @@ private:
         stress_tests[1].tb_arg = 1;
         stress_tests[1].B_arg = 0;
 
+/*
         stress_tests[2].test_name = "TF32";
         stress_tests[2].test_state = 0;
         stress_tests[2].P_arg = "sss_fast_tf32";
         stress_tests[2].m_arg = 209712;
         stress_tests[2].n_arg = 68472;
         stress_tests[2].k_arg = 90432;
+        stress_tests[2].ta_arg = 1;
+        stress_tests[2].tb_arg = 0;
+        stress_tests[2].B_arg = 0;
+*/
+
+
+        stress_tests[2].test_name = "TF32";
+        stress_tests[2].test_state = 0;
+        stress_tests[2].P_arg = "sss_fast_tf32";
+        stress_tests[2].m_arg = 105712;
+        stress_tests[2].n_arg = 34472;
+        stress_tests[2].k_arg = 45432;
         stress_tests[2].ta_arg = 1;
         stress_tests[2].tb_arg = 0;
         stress_tests[2].B_arg = 0;
@@ -349,6 +349,7 @@ private:
         stress_tests[3].tb_arg = 1;
         stress_tests[3].B_arg = 0;
 
+/*
         stress_tests[4].test_name = "FP32";
         stress_tests[4].test_state = 0;
         stress_tests[4].P_arg = "sss";
@@ -358,6 +359,18 @@ private:
         stress_tests[4].ta_arg = 0;
         stress_tests[4].tb_arg = 1;
         stress_tests[4].B_arg = 0;
+*/
+
+        stress_tests[4].test_name = "FP32";
+        stress_tests[4].test_state = 0;
+        stress_tests[4].P_arg = "sss";
+        stress_tests[4].m_arg = 105712;
+        stress_tests[4].n_arg = 34472;
+        stress_tests[4].k_arg = 45432;
+        stress_tests[4].ta_arg = 0;
+        stress_tests[4].tb_arg = 1;
+        stress_tests[4].B_arg = 0;
+
     }
 
 
