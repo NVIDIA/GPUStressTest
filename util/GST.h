@@ -318,9 +318,9 @@ private:
         stress_tests[0].test_name = "INT8";
         stress_tests[0].test_state = 0;
         stress_tests[0].P_arg = "bisb_imma";
-        stress_tests[0].m_arg = 244872;
-        stress_tests[0].n_arg = 117052;
-        stress_tests[0].k_arg = 142437;
+        stress_tests[0].m_arg = 5218;
+        stress_tests[0].n_arg = 263;
+        stress_tests[0].k_arg = 2437;
         stress_tests[0].ta_arg = 1;
         stress_tests[0].tb_arg = 0;
         stress_tests[0].B_arg = 0;
@@ -328,9 +328,9 @@ private:
         stress_tests[1].test_name = "FP16";
         stress_tests[1].test_state = 0;
         stress_tests[1].P_arg = "hsh";
-        stress_tests[1].m_arg = 115928;
-        stress_tests[1].n_arg = 116944;
-        stress_tests[1].k_arg = 112144;
+        stress_tests[1].m_arg = 5928;
+        stress_tests[1].n_arg = 6944;
+        stress_tests[1].k_arg = 2144;
         stress_tests[1].ta_arg = 0;
         stress_tests[1].tb_arg = 1;
         stress_tests[1].B_arg = 0;

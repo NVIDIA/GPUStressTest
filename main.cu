@@ -670,9 +670,9 @@ static void test_engine(BlasOpts &blas_opts) {
     T_SCALE alpha = cuGet<T_SCALE>(blas_opts.alpha);
     T_SCALE beta = cuGet<T_SCALE>(blas_opts.beta);
     int matrixM = 0, matrixN = 0, matrixK = 0;
-    int rowsA = 0, rowsB = 0, rowsC = 0;
-    int colsA = 0, colsB = 0, colsC = 0;
-    size_t matrixSizeA = 0, matrixSizeB = 0, matrixSizeC = 0;
+    int rowsA = 0, rowsB = 0, rowsC = 0, rowsD = 0;
+    int colsA = 0, colsB = 0, colsC = 0, colsD = 0;
+    size_t matrixSizeA = 0, matrixSizeB = 0, matrixSizeC = 0, matrixSizeD = 0;
 
     // make sure no error
     if (!std::is_same<T_IN_C, T_OUT>::value) {
@@ -729,19 +729,28 @@ static void test_engine(BlasOpts &blas_opts) {
     }
     rowsC = imax(blas_opts.ldc, matrixM);
     colsC = matrixN;
+    rowsD = rowsC;
+    colsD = colsC;
 
     matrixSizeA = (size_t)rowsA * colsA;
     matrixSizeB = (size_t)rowsB * colsB;
     matrixSizeC = (size_t)rowsC * colsC;
+    matrixSizeD = (size_t)rowsD * colsD;
 
-    printf("matrixSize Total: %ld \n", matrixSizeA +  matrixSizeB + matrixSizeC);
+    printf("Allocate matrixSize Total A + B + C: %ld \n", matrixSizeA +  matrixSizeB + matrixSizeC);
+    printf("Allocate matrixSize Total A + B + C + D: %ld \n", matrixSizeA +  matrixSizeB + matrixSizeC + matrixSizeD);
 
     d_A = cublas::device_memory::allocate<T_IN_A>(matrixSizeA);
+    printf("d_A Done.\n");
     d_B = cublas::device_memory::allocate<T_IN_B>(matrixSizeB);
+    printf("d_B Done.\n");
     d_C = cublas::device_memory::allocate<T_IN_C>(matrixSizeC);
+    printf("d_C Done.\n");
     d_D = blas_opts.m_outOfPlace
-              ? cublas::device_memory::allocate<T_OUT>(matrixSizeC)
+              ?  cublas::device_memory::allocate<T_OUT>(matrixSizeC)
               : (T_OUT *)d_C;
+
+    printf("d_D Done.\n");
 
     if (!blas_opts.filling_zero) {
       if (blas_opts.transa != CUBLAS_OP_N) {
@@ -974,18 +983,6 @@ int main(int argc, char *argv[]) {
 
   if (pthread_attr_init(&attr)) {
     perror("pthread_attr_init - watchdog");
-#define TEST_ENGINE_MAPPING(T_IN_A, T_IN_B, T_IN_C, T_OUT, T_SCALE, T_MATH)    \
-  if ((blas_opts.input_type_a == T_IN_A) &&                                    \
-      (blas_opts.input_type_b == T_IN_B) &&                                    \
-      (blas_opts.input_type_c == T_IN_C) &&                                    \
-      (blas_opts.output_type == T_OUT) && (blas_opts.scale_type == T_SCALE)) { \
-    test_engine<typename CudaTypeEnumTraits<T_IN_A>::type,                     \
-                typename CudaTypeEnumTraits<T_IN_B>::type,                     \
-                typename CudaTypeEnumTraits<T_IN_C>::type,                     \
-                typename CudaTypeEnumTraits<T_OUT>::type,                      \
-                typename CudaTypeEnumTraits<T_MATH>::type,                     \
-                typename CudaTypeEnumTraits<T_SCALE>::type>(blas_opts);        \
-  }
     exit(-1);
   }
 
@@ -1025,9 +1022,6 @@ int main(int argc, char *argv[]) {
     printf("Device #%d is selected\n", device_arg);
   }
 
-  BlasOpts blas_opts;
-  parse_args(command_line, blas_opts);
-  reset_blas_opts(command_line, blas_opts);
 
   /* GPU detection and test initilization */
   int dev;
@@ -1154,6 +1148,7 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
   printf("GPU Memory: %lld, memgb: %d\n", (long long) gpumem, memgb);
   printf("\n\n");
 
+  BlasOpts blas_opts;
 
   for (dev = 0; dev < deviceCount; dev++) {
 	CHECK(cudaSetDevice(dev));
@@ -1182,30 +1177,18 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
                 printf("p_parse failed\n");
                 exit(-1);
             }
-            // cout << "DEBUG:" << "set opts" << endl;
 
-            blas_opts.m = gst.stress_tests[t_num].m_arg;
+            // cout << "DEBUG:" << "set opts" << endl;
+            reset_blas_opts(command_line, blas_opts);
+
+	    blas_opts.m = gst.stress_tests[t_num].m_arg;
             blas_opts.n = gst.stress_tests[t_num].n_arg;
             blas_opts.k = gst.stress_tests[t_num].k_arg;
-            blas_opts.m_opt = true;
-            blas_opts.n_opt = true;
-            blas_opts.k_opt = true;
+            blas_opts.transa = (cublasOperation_t) gst.stress_tests[t_num].ta_arg;
+            blas_opts.transb = (cublasOperation_t) gst.stress_tests[t_num].tb_arg;
+            blas_opts.beta_opt = gst.stress_tests[t_num].B_arg;
 
-            if (gst.stress_tests[t_num].ta_arg == 1)
-                blas_opts.transa_opt = true;
-            else {
-                blas_opts.transa_opt = false;
-                blas_opts.transa = (cublasOperation_t)0;
-            }
-            if (gst.stress_tests[t_num].tb_arg == 1)
-                blas_opts.transb_opt = true;
-            else {
-                blas_opts.transb_opt = false;
-                blas_opts.transb = (cublasOperation_t)0;
-            }
-            blas_opts.beta = 0.0f;
-            blas_opts.beta_opt = true;
-        
+
             printf("\n***** STARTING TEST %d: %s On Device %d %s\n", t_num, gst.stress_tests[t_num].test_name, dev, devprops[dev].name);
             fflush(stdout);
             tstate[t_num].test_name = gst.stress_tests[t_num].test_name;
