@@ -150,7 +150,26 @@ public:
     }
     
     void dump_test_args(const int t_num) {
-        printf("stress_tests[%d].test_name %s P_arg %s\n", t_num, stress_tests[t_num].test_name, stress_tests[t_num].P_arg.c_str());
+        printf("stress_tests[%d].test_name %s\n"
+               "P %s\n" 
+               "m %d\n" 
+               "n %d\n" 
+               "k %d\n" 
+               "ta %d\n" 
+               "tb %d\n" 
+               "B %d\n", 
+	       t_num,
+	       stress_tests[t_num].test_name,
+	       stress_tests[t_num].P_arg.c_str(),
+	       stress_tests[t_num].m_arg,
+	       stress_tests[t_num].n_arg,
+	       stress_tests[t_num].k_arg,
+	       stress_tests[t_num].ta_arg,
+	       stress_tests[t_num].tb_arg,
+	       stress_tests[t_num].B_arg);
+
+	       
+
         return;
     }
 
@@ -318,12 +337,13 @@ private:
         stress_tests[0].test_name = "INT8";
         stress_tests[0].test_state = 0;
         stress_tests[0].P_arg = "bisb_imma";
-        stress_tests[0].m_arg = 5218;
-        stress_tests[0].n_arg = 263;
-        stress_tests[0].k_arg = 2437;
+        stress_tests[0].m_arg = 355218;
+        stress_tests[0].n_arg = 5263;
+        stress_tests[0].k_arg = 52437;
         stress_tests[0].ta_arg = 1;
         stress_tests[0].tb_arg = 0;
         stress_tests[0].B_arg = 0;
+
 
         stress_tests[1].test_name = "FP16";
         stress_tests[1].test_state = 0;
@@ -334,19 +354,6 @@ private:
         stress_tests[1].ta_arg = 0;
         stress_tests[1].tb_arg = 1;
         stress_tests[1].B_arg = 0;
-
-/*
-        stress_tests[2].test_name = "TF32";
-        stress_tests[2].test_state = 0;
-        stress_tests[2].P_arg = "sss_fast_tf32";
-        stress_tests[2].m_arg = 209712;
-        stress_tests[2].n_arg = 68472;
-        stress_tests[2].k_arg = 90432;
-        stress_tests[2].ta_arg = 1;
-        stress_tests[2].tb_arg = 0;
-        stress_tests[2].B_arg = 0;
-*/
-
 
         stress_tests[2].test_name = "TF32";
         stress_tests[2].test_state = 0;
@@ -368,18 +375,6 @@ private:
         stress_tests[3].tb_arg = 1;
         stress_tests[3].B_arg = 0;
 
-/*
-        stress_tests[4].test_name = "FP32";
-        stress_tests[4].test_state = 0;
-        stress_tests[4].P_arg = "sss";
-        stress_tests[4].m_arg = 132712;
-        stress_tests[4].n_arg = 58640;
-        stress_tests[4].k_arg = 170144;
-        stress_tests[4].ta_arg = 0;
-        stress_tests[4].tb_arg = 1;
-        stress_tests[4].B_arg = 0;
-*/
-
         stress_tests[4].test_name = "FP32";
         stress_tests[4].test_state = 0;
         stress_tests[4].P_arg = "sss";
@@ -391,6 +386,7 @@ private:
         stress_tests[4].B_arg = 0;
 
     }
+
 
 
     void init_t4() {

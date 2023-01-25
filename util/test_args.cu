@@ -424,7 +424,6 @@ void reset_blas_opts(CommandLine& command_line, BlasOpts &blas_opts)
  else {
      blas_opts.timing_loop = 10;
  }
-  blas_opts.timing_loop = 1;
   blas_opts.m_orderingA = CUBLASLT_ORDER_COL;
   blas_opts.m_orderingB = CUBLASLT_ORDER_COL;
   blas_opts.m_orderingC = CUBLASLT_ORDER_COL;

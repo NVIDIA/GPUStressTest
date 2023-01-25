@@ -161,7 +161,7 @@ void* watchdog(void* in)
 **line arguments largely ignored by GST but left intact. Existing
 ** options include the time_loop "-T=<loop count>" which is used by GST
 ** and defaults to 100 requiring a runtime of around 30 min for five tests
-** on a V100 for reference ad drives the GPU to full power, TFLOPS and memory
+** on a V100 for reference and drives the GPU to full power, TFLOPS and memory
 */
 
 
@@ -336,6 +336,7 @@ static double calc_matmul_perf_time(
 
   double kernel_time = mean;
 
+  /****
   fprintf(stdout,
           "^^^^ gpu time statistics: runs %d, mean %f ms, min %f ms, 20 "
           "percent %f ms, "
@@ -343,6 +344,7 @@ static double calc_matmul_perf_time(
           "%f ms\n",
           blas_opts.timing_loop, (double)mean, (double)min,
           (double)percentile20, (double)percentile50, (double)max);
+   ***/
 
   double cudaTime = kernel_time * size / 1000.;
   return cudaTime;
@@ -737,20 +739,26 @@ static void test_engine(BlasOpts &blas_opts) {
     matrixSizeC = (size_t)rowsC * colsC;
     matrixSizeD = (size_t)rowsD * colsD;
 
-    printf("Allocate matrixSize Total A + B + C: %ld \n", matrixSizeA +  matrixSizeB + matrixSizeC);
-    printf("Allocate matrixSize Total A + B + C + D: %ld \n", matrixSizeA +  matrixSizeB + matrixSizeC + matrixSizeD);
+    if (blas_opts.m_outOfPlace) {
+        printf("Allocate matrixSize Total A + B + C + D:  %ld \n",
+                sizeof(T_IN_A) * matrixSizeA +
+                sizeof(T_IN_B) * matrixSizeB +
+                sizeof(T_IN_C) * matrixSizeC +
+	        sizeof(T_IN_C) * matrixSizeD);
+   } else {
+        printf("Allocate matrixSize Total A + B + C:  %ld \n",
+                sizeof(T_IN_A) * matrixSizeA +
+                sizeof(T_IN_B) * matrixSizeB +
+                sizeof(T_IN_C) * matrixSizeC);
+   }
 
     d_A = cublas::device_memory::allocate<T_IN_A>(matrixSizeA);
-    printf("d_A Done.\n");
     d_B = cublas::device_memory::allocate<T_IN_B>(matrixSizeB);
-    printf("d_B Done.\n");
     d_C = cublas::device_memory::allocate<T_IN_C>(matrixSizeC);
-    printf("d_C Done.\n");
     d_D = blas_opts.m_outOfPlace
               ?  cublas::device_memory::allocate<T_OUT>(matrixSizeC)
               : (T_OUT *)d_C;
 
-    printf("d_D Done.\n");
 
     if (!blas_opts.filling_zero) {
       if (blas_opts.transa != CUBLAS_OP_N) {
@@ -824,7 +832,6 @@ static void test_engine(BlasOpts &blas_opts) {
             "cudaMemset for matrix D failed");
       }
     }
-
     cublasLtHandle_t ltHandle;
     cublas::cublas_check_error(cublasLtCreate(&ltHandle),
                                "create cublasLt handle failed");
@@ -1021,6 +1028,7 @@ int main(int argc, char *argv[]) {
     }
     printf("Device #%d is selected\n", device_arg);
   }
+  printf("%s Done.\n", argv[0]);
 
 
   /* GPU detection and test initilization */
@@ -1055,6 +1063,8 @@ int main(int argc, char *argv[]) {
 #ifndef DEBUG_MATRIX_SIZES
   string gpu_name(devprops[0].name);
 #else
+  printf("%s done capturing GPU information.\n", argv[0]);
+
 // These entries should match GST::test_suite; clever C++ way to range over the enum and cast to string not obvious...
 for (string gpu_name :  {"T4", "A100_40", "A100_80", "K80", "M60", "P40", "P100", "H100", "V100_16", "V100_32", "Generic", "NVIDIA Graphics Device"}) {
 
@@ -1135,7 +1145,7 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
     if (gpu_name.find("H100", 0) != string::npos) {
         cout << "Initilizing H100 based test suite" << endl;
         gst = GST(GST::H100);
-        memgb = 95;
+        memgb = 80;
         break;
     }
     cout << "Initilizing Generic test suite" << endl;
@@ -1154,9 +1164,10 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
 	CHECK(cudaSetDevice(dev));
 	printf("Device %d: \"%s\", PCIe: %x\n", dev, devprops[dev].name,devprops[dev].pciBusID);
 
-       // gst.dump_test_args(0);
 
 	for (int t_num = 0; t_num  < NUM_TESTS; t_num++) {
+
+
 
             /* Abort if watchdog has died */
             if (watchdog_bailed) {
@@ -1164,7 +1175,7 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
                 printf("GPUstress terminating\n");
                 exit(-1);
             }
-            reset_blas_opts(command_line, blas_opts);
+
             /* Debug
             gst.dump_test_args(tix);
             hello_world(blas_opts, gst.stress_tests[0].P_arg);
@@ -1179,7 +1190,9 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
             }
 
             // cout << "DEBUG:" << "set opts" << endl;
+
             reset_blas_opts(command_line, blas_opts);
+            gst.dump_test_args(t_num);
 
 	    blas_opts.m = gst.stress_tests[t_num].m_arg;
             blas_opts.n = gst.stress_tests[t_num].n_arg;
@@ -1187,7 +1200,6 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
             blas_opts.transa = (cublasOperation_t) gst.stress_tests[t_num].ta_arg;
             blas_opts.transb = (cublasOperation_t) gst.stress_tests[t_num].tb_arg;
             blas_opts.beta_opt = gst.stress_tests[t_num].B_arg;
-
 
             printf("\n***** STARTING TEST %d: %s On Device %d %s\n", t_num, gst.stress_tests[t_num].test_name, dev, devprops[dev].name);
             fflush(stdout);
@@ -1199,8 +1211,6 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
             /* Signal watchdog test started */
             sem_post(&wd);
             // cout << "DEBUG:" << "start test" << endl;
-
-printf("DEBUG: transa %d transb %d \n", blas_opts.transa, blas_opts.transb);
 
             /* Run the test */
             test_cublasLt(blas_opts);
