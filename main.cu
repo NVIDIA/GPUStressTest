@@ -116,7 +116,13 @@ void reset_blas_opts(CommandLine& command_line, BlasOpts& blas_opts);
 
 void* watchdog(void* in)
 {
-    printf("WATCHDOG starting, TIMEOUT: %d seconds\n", TEST_WAIT_TIME);
+    int gst_watchdog_timeout = TEST_WAIT_TIME;
+
+    if (const char* env_p = std::getenv("GST_WATCHDOG_TIMEOUT_SEC")) {
+        gst_watchdog_timeout = atoi(env_p);
+    }
+
+    printf("WATCHDOG starting, TIMEOUT: %d seconds\n", gst_watchdog_timeout);
 
     int i = 0, n = 0;
     struct timespec ts;
@@ -131,7 +137,7 @@ void* watchdog(void* in)
         auto value_secs = std::chrono::duration_cast<std::chrono::seconds>(epoch_secs);
         ts.tv_sec = value_secs.count();
         ts.tv_nsec = 0L;
-        ts.tv_sec += TEST_WAIT_TIME;
+        ts.tv_sec += gst_watchdog_timeout;
         n = sem_timedwait(&done, &ts);
         if ((n == -1) && (errno == ETIMEDOUT) && (tstate[i].test_state == 1)) {
             printf("TEST %s appears to be hung\n", tstate[i].test_name);
