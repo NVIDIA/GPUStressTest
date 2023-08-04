@@ -81,6 +81,7 @@ https://github.com/microsoft/vcpkg.git
 
 /* GST specific */
 #include "GST.h"
+#define MAX_CUDA_MALLOC_PER_CALL   (5u * (1024 * 1024 * 1024))
 
 extern bool parse_in_math_scale_out_type(BlasOpts &blas_opts, const string &in_math_scale_out_type);
 
@@ -757,6 +758,18 @@ static void test_engine(BlasOpts &blas_opts) {
                 sizeof(T_IN_B) * matrixSizeB +
                 sizeof(T_IN_C) * matrixSizeC);
    }
+
+   int d_A_malloc_num = (sizeof(T_IN_A) * matrixSizeA) / MAX_CUDA_MALLOC_PER_CALL;
+   printf("DEBUG: d_A_malloc_num %d\n",  d_A_malloc_num);
+
+   int d_B_malloc_num = (sizeof(T_IN_B) * matrixSizeB) / MAX_CUDA_MALLOC_PER_CALL;
+   printf("DEBUG: d_B_malloc_num %d\n",  d_B_malloc_num);
+
+   int d_C_malloc_num = (sizeof(T_IN_C) * matrixSizeC) / MAX_CUDA_MALLOC_PER_CALL;
+   printf("DEBUG: d_C_malloc_num %d\n",  d_C_malloc_num);
+
+
+    for(int ix = 0; ix <= d_A_malloc_num; ix++);
 
     d_A = cublas::device_memory::allocate<T_IN_A>(matrixSizeA);
     d_B = cublas::device_memory::allocate<T_IN_B>(matrixSizeB);
