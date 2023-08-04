@@ -672,10 +672,6 @@ template <typename T_IN_A, typename T_IN_B, typename T_IN_C, typename T_OUT,
 static void test_engine(BlasOpts &blas_opts) {
   printf("testing cublasLt\n");
   try {
-    T_IN_A *d_A = nullptr;
-    T_IN_B *d_B = nullptr;
-    T_IN_C *d_C = nullptr;
-    T_OUT *d_D = nullptr;
     T_SCALE alpha = cuGet<T_SCALE>(blas_opts.alpha);
     T_SCALE beta = cuGet<T_SCALE>(blas_opts.beta);
     int matrixM = 0, matrixN = 0, matrixK = 0;
@@ -768,21 +764,34 @@ static void test_engine(BlasOpts &blas_opts) {
    int d_C_malloc_num = (sizeof(T_IN_C) * matrixSizeC) / MAX_CUDA_MALLOC_PER_CALL;
    printf("DEBUG: d_C_malloc_num %d\n",  d_C_malloc_num);
 
+    T_IN_A *d_A[d_A_malloc_num] {nullptr};
+    T_IN_B *d_B[d_B_malloc_num] {nullptr};
+    T_IN_C *d_C[d_C_malloc_num] {nullptr};
+    T_OUT *d_D[d_C_malloc_num]  {nullptr};
 
-    for(int ix = 0; ix <= d_A_malloc_num; ix++);
+   printf("DEBUG: malloc A\n");
+    for(int ix = 0; ix < d_A_malloc_num; ix++) d_A[ix]  = 
+        (T_IN_A *) cublas::device_memory::allocate<T_IN_A>(MAX_CUDA_MALLOC_PER_CALL);
+   printf("DEBUG: A done\n");
 
-    d_A = cublas::device_memory::allocate<T_IN_A>(matrixSizeA);
-    d_B = cublas::device_memory::allocate<T_IN_B>(matrixSizeB);
-    d_C = cublas::device_memory::allocate<T_IN_C>(matrixSizeC);
-    d_D = blas_opts.m_outOfPlace
-              ?  cublas::device_memory::allocate<T_OUT>(matrixSizeC)
-              : (T_OUT *)d_C;
+    for(int ix = 0; ix < d_B_malloc_num; ix++) d_B[ix]  = 
+        (T_IN_B *) cublas::device_memory::allocate<T_IN_B>(MAX_CUDA_MALLOC_PER_CALL);
+
+    for(int ix = 0; ix < d_C_malloc_num; ix++) d_C[ix]  = 
+        (T_IN_C *) cublas::device_memory::allocate<T_IN_C>(MAX_CUDA_MALLOC_PER_CALL);
+
+    if (blas_opts.m_outOfPlace) {
+        for(int ix = 0; ix <= d_C_malloc_num; ix++) d_D[ix]  = 
+            (T_OUT *) cublas::device_memory::allocate<T_OUT>(MAX_CUDA_MALLOC_PER_CALL);
+    } else {
+        for(int ix = 0; ix <= d_C_malloc_num; ix++) d_D[ix]  = (T_OUT *) d_C[ix];
+    }
 
 
     if (!blas_opts.filling_zero) {
       if (blas_opts.transa != CUBLAS_OP_N) {
         cublas::cuda_check_error(
-            fillMatrixDevice(make_bufferBatchVariant(d_A, matrixSizeA),
+            fillMatrixDevice(make_bufferBatchVariant(d_A[0], matrixSizeA),
                              matrixSizeA, rowsA, blas_opts.k, blas_opts.m,
                              CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P',
                              0, 0, 0, true,
@@ -792,7 +801,7 @@ static void test_engine(BlasOpts &blas_opts) {
             "fillMatrixDevice for matrix A failed");
       } else {
         cublas::cuda_check_error(
-            fillMatrixDevice(make_bufferBatchVariant(d_A, matrixSizeA),
+            fillMatrixDevice(make_bufferBatchVariant(d_A[0], matrixSizeA),
                              matrixSizeA, rowsA, blas_opts.m, blas_opts.k,
                              CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P',
                              0, 0, 0, true,
@@ -804,7 +813,7 @@ static void test_engine(BlasOpts &blas_opts) {
 
       if (blas_opts.transb != CUBLAS_OP_N) {
         cublas::cuda_check_error(
-            fillMatrixDevice(make_bufferBatchVariant(d_B, matrixSizeB),
+            fillMatrixDevice(make_bufferBatchVariant(d_B[0], matrixSizeB),
                              matrixSizeB, rowsB, blas_opts.n, blas_opts.k,
                              CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P',
                              121, 0, 0, true,
@@ -814,7 +823,7 @@ static void test_engine(BlasOpts &blas_opts) {
             "fillMatrixDevice for matrix B failed");
       } else {
         cublas::cuda_check_error(
-            fillMatrixDevice(make_bufferBatchVariant(d_B, matrixSizeB),
+            fillMatrixDevice(make_bufferBatchVariant(d_B[0], matrixSizeB),
                              matrixSizeB, rowsB, blas_opts.k, blas_opts.n,
                              CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P',
                              121, 0, 0, true,
@@ -825,29 +834,29 @@ static void test_engine(BlasOpts &blas_opts) {
       }
 
       cublas::cuda_check_error(
-          fillMatrixDevice(make_bufferBatchVariant(d_C, matrixSizeC),
+          fillMatrixDevice(make_bufferBatchVariant(d_C[0], matrixSizeC),
                            matrixSizeC, rowsC, blas_opts.m, blas_opts.n,
                            CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P', 0,
                            0, 0, true, 1),
           "fillMatrixDevice for matrix C failed");
       if (blas_opts.m_outOfPlace) {
         cublas::cuda_check_error(
-            fillMatrixDevice(make_bufferBatchVariant(d_D, matrixSizeC),
+            fillMatrixDevice(make_bufferBatchVariant(d_D[0], matrixSizeC),
                              matrixSizeC, rowsC, blas_opts.m, blas_opts.n,
                              CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P',
                              0, 0, 0, true, 1),
             "fillMatrixDevice for matrix D failed");
       }
     } else {
-      cublas::cuda_check_error(cudaMemset(d_A, 0, sizeof(T_IN_A) * matrixSizeA),
+      cublas::cuda_check_error(cudaMemset(d_A[0], 0, sizeof(T_IN_A) * matrixSizeA),
                                "cudaMemset for matrix A failed");
-      cublas::cuda_check_error(cudaMemset(d_B, 0, sizeof(T_IN_B) * matrixSizeB),
+      cublas::cuda_check_error(cudaMemset(d_B[0], 0, sizeof(T_IN_B) * matrixSizeB),
                                "cudaMemset for matrix B failed");
-      cublas::cuda_check_error(cudaMemset(d_C, 0, sizeof(T_IN_C) * matrixSizeC),
+      cublas::cuda_check_error(cudaMemset(d_C[0], 0, sizeof(T_IN_C) * matrixSizeC),
                                "cudaMemset for matrix C failed");
       if (blas_opts.m_outOfPlace) {
         cublas::cuda_check_error(
-            cudaMemset(d_D, 0, sizeof(T_OUT) * matrixSizeC),
+            cudaMemset(d_D[0], 0, sizeof(T_OUT) * matrixSizeC),
             "cudaMemset for matrix D failed");
       }
     }
@@ -857,16 +866,15 @@ static void test_engine(BlasOpts &blas_opts) {
 
     bool has_error = false;
     if (lt_gemm<T_IN_A, T_IN_B, T_IN_C, T_OUT, T_MATH, T_SCALE>(
-            ltHandle, blas_opts, d_A, d_B, d_C, d_D, alpha, beta, rowsA, rowsB,
-            rowsC)) {
+            ltHandle, blas_opts, d_A[0], d_B[0], d_C[0], d_D[0], alpha, beta, rowsA, rowsB, rowsC)) {
       has_error = true;
     }
 
-    cublas::device_memory::free(d_A);
-    cublas::device_memory::free(d_B);
-    cublas::device_memory::free(d_C);
+    cublas::device_memory::free(d_A[0]);
+    cublas::device_memory::free(d_B[0]);
+    cublas::device_memory::free(d_C[0]);
     if (blas_opts.m_outOfPlace) {
-      cublas::device_memory::free(d_D);
+      cublas::device_memory::free(d_D[0]);
     }
     cublas::cublas_check_error(cublasLtDestroy(ltHandle),
                                "destroy ltHandle failed");
