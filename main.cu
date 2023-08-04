@@ -81,7 +81,7 @@ https://github.com/microsoft/vcpkg.git
 
 /* GST specific */
 #include "GST.h"
-#define MAX_CUDA_MALLOC_PER_CALL   (5u * (1024 * 1024 * 1024))
+#define MAX_CUDA_MALLOC_PER_CALL   (5lu * (1024 * 1024 * 1024))
 
 extern bool parse_in_math_scale_out_type(BlasOpts &blas_opts, const string &in_math_scale_out_type);
 
@@ -755,37 +755,48 @@ static void test_engine(BlasOpts &blas_opts) {
                 sizeof(T_IN_C) * matrixSizeC);
    }
 
-   int d_A_malloc_num = (sizeof(T_IN_A) * matrixSizeA) / MAX_CUDA_MALLOC_PER_CALL;
-   printf("DEBUG: d_A_malloc_num %d\n",  d_A_malloc_num);
+   int d_A_malloc_num = ((sizeof(T_IN_A) * matrixSizeA) <= MAX_CUDA_MALLOC_PER_CALL) ? 1 : (sizeof(T_IN_A) * matrixSizeA) / MAX_CUDA_MALLOC_PER_CALL;
+   printf("DEBUG: A allocations %d\n", d_A_malloc_num);
+   size_t  adjustedMatrixSizeA = (d_A_malloc_num == 1) ? matrixSizeA :  MAX_CUDA_MALLOC_PER_CALL / sizeof(T_IN_A);
+   printf("DEBUG: matrixSizeA %lu adjustedMatrixSizeA %lu\n", matrixSizeA,  adjustedMatrixSizeA);
+    
+   int d_B_malloc_num = ((sizeof(T_IN_B) * matrixSizeB) <= MAX_CUDA_MALLOC_PER_CALL) ? 1 : (sizeof(T_IN_B) * matrixSizeB) / MAX_CUDA_MALLOC_PER_CALL;
+   printf("DEBUG: B allocations %d\n", d_B_malloc_num);
+   size_t  adjustedMatrixSizeB = (d_B_malloc_num == 1) ? matrixSizeB :  MAX_CUDA_MALLOC_PER_CALL / sizeof(T_IN_B);
+   printf("DEBUG: matrixSizeB %lu adjustedMatrixSizeB %lu\n", matrixSizeB,  adjustedMatrixSizeB);
+    
+   int d_C_malloc_num = ((sizeof(T_IN_C) * matrixSizeC) <= MAX_CUDA_MALLOC_PER_CALL) ? 1 : (sizeof(T_IN_C) * matrixSizeC) / MAX_CUDA_MALLOC_PER_CALL;
+   printf("DEBUG: C allocations %d\n", d_C_malloc_num);
+   size_t  adjustedMatrixSizeC = (d_C_malloc_num == 1) ? matrixSizeC :  MAX_CUDA_MALLOC_PER_CALL / sizeof(T_IN_C);
+   printf("DEBUG: matrixSizeC %lu adjustedMatrixSizeC %lu\n", matrixSizeC,  adjustedMatrixSizeC);
+    
 
-   int d_B_malloc_num = (sizeof(T_IN_B) * matrixSizeB) / MAX_CUDA_MALLOC_PER_CALL;
-   printf("DEBUG: d_B_malloc_num %d\n",  d_B_malloc_num);
-
-   int d_C_malloc_num = (sizeof(T_IN_C) * matrixSizeC) / MAX_CUDA_MALLOC_PER_CALL;
-   printf("DEBUG: d_C_malloc_num %d\n",  d_C_malloc_num);
 
     T_IN_A *d_A[d_A_malloc_num] {nullptr};
     T_IN_B *d_B[d_B_malloc_num] {nullptr};
     T_IN_C *d_C[d_C_malloc_num] {nullptr};
     T_OUT *d_D[d_C_malloc_num]  {nullptr};
 
-   printf("DEBUG: malloc A\n");
+   printf("DEBUG: malloc\n");
     for(int ix = 0; ix < d_A_malloc_num; ix++) d_A[ix]  = 
-        (T_IN_A *) cublas::device_memory::allocate<T_IN_A>(MAX_CUDA_MALLOC_PER_CALL);
+        (T_IN_A *) cublas::device_memory::allocate<T_IN_A>(adjustedMatrixSizeA);
    printf("DEBUG: A done\n");
 
     for(int ix = 0; ix < d_B_malloc_num; ix++) d_B[ix]  = 
-        (T_IN_B *) cublas::device_memory::allocate<T_IN_B>(MAX_CUDA_MALLOC_PER_CALL);
+        (T_IN_B *) cublas::device_memory::allocate<T_IN_B>(adjustedMatrixSizeB);
+   printf("DEBUG: B done\n");
 
     for(int ix = 0; ix < d_C_malloc_num; ix++) d_C[ix]  = 
-        (T_IN_C *) cublas::device_memory::allocate<T_IN_C>(MAX_CUDA_MALLOC_PER_CALL);
+        (T_IN_C *) cublas::device_memory::allocate<T_IN_C>(adjustedMatrixSizeC);
+   printf("DEBUG: C done\n");
 
     if (blas_opts.m_outOfPlace) {
         for(int ix = 0; ix <= d_C_malloc_num; ix++) d_D[ix]  = 
-            (T_OUT *) cublas::device_memory::allocate<T_OUT>(MAX_CUDA_MALLOC_PER_CALL);
+            (T_OUT *) cublas::device_memory::allocate<T_OUT>(adjustedMatrixSizeC);
     } else {
         for(int ix = 0; ix <= d_C_malloc_num; ix++) d_D[ix]  = (T_OUT *) d_C[ix];
     }
+   printf("DEBUG: D done\n");
 
 
     if (!blas_opts.filling_zero) {
