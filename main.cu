@@ -737,10 +737,10 @@ static void test_engine(BlasOpts &blas_opts) {
     rowsD = rowsC;
     colsD = colsC;
 
-    matrixSizeA = (size_t)rowsA * colsA;
-    matrixSizeB = (size_t)rowsB * colsB;
-    matrixSizeC = (size_t)rowsC * colsC;
-    matrixSizeD = (size_t)rowsD * colsD;
+    matrixSizeA = (size_t) rowsA * colsA;
+    matrixSizeB = (size_t) rowsB * colsB;
+    matrixSizeC = (size_t) rowsC * colsC;
+    matrixSizeD = (size_t) rowsD * colsD;
 
     if (blas_opts.m_outOfPlace) {
         printf("Allocate matrixSize Total A + B + C + D:  %ld \n",
@@ -757,18 +757,33 @@ static void test_engine(BlasOpts &blas_opts) {
 
    int d_A_malloc_num = ((sizeof(T_IN_A) * matrixSizeA) <= MAX_CUDA_MALLOC_PER_CALL) ? 1 : (sizeof(T_IN_A) * matrixSizeA) / MAX_CUDA_MALLOC_PER_CALL;
    printf("DEBUG: A allocations %d\n", d_A_malloc_num);
-   size_t  adjustedMatrixSizeA = (d_A_malloc_num == 1) ? matrixSizeA :  MAX_CUDA_MALLOC_PER_CALL / sizeof(T_IN_A);
+   size_t adjustedMatrixSizeA = (d_A_malloc_num == 1) ? matrixSizeA :  MAX_CUDA_MALLOC_PER_CALL / sizeof(T_IN_A);
+   int adjustedRowsA = ((float) rowsA) / ((float)  matrixSizeA) * ((float) adjustedMatrixSizeA); 
+   printf("DEBUG: adjustedRowsA %d\n", adjustedRowsA);
+   int adjustedColsA = (adjustedMatrixSizeA / adjustedRowsA); 
+   adjustedMatrixSizeA = adjustedRowsA * adjustedColsA;
    printf("DEBUG: matrixSizeA %lu adjustedMatrixSizeA %lu\n", matrixSizeA,  adjustedMatrixSizeA);
+   printf("DEBUG: rowsA %d adjustedRowsA %d colsA %d adjustedColsA %d\n", rowsA, adjustedRowsA, colsA, adjustedColsA);
     
    int d_B_malloc_num = ((sizeof(T_IN_B) * matrixSizeB) <= MAX_CUDA_MALLOC_PER_CALL) ? 1 : (sizeof(T_IN_B) * matrixSizeB) / MAX_CUDA_MALLOC_PER_CALL;
    printf("DEBUG: B allocations %d\n", d_B_malloc_num);
-   size_t  adjustedMatrixSizeB = (d_B_malloc_num == 1) ? matrixSizeB :  MAX_CUDA_MALLOC_PER_CALL / sizeof(T_IN_B);
+   size_t adjustedMatrixSizeB = (d_B_malloc_num == 1) ? matrixSizeB :  MAX_CUDA_MALLOC_PER_CALL / sizeof(T_IN_B);
+   int adjustedRowsB = ((float) rowsB) / ((float)  matrixSizeB) * ((float) adjustedMatrixSizeB); 
+   printf("DEBUG: adjustedRowsB %d\n", adjustedRowsB);
+   int adjustedColsB = (adjustedMatrixSizeB / adjustedRowsB); 
+   adjustedMatrixSizeB = adjustedRowsB * adjustedColsB;
    printf("DEBUG: matrixSizeB %lu adjustedMatrixSizeB %lu\n", matrixSizeB,  adjustedMatrixSizeB);
+   printf("DEBUG: rowsB %d adjustedRowsB %d colsB %d adjustedColsB %d\n", rowsB, adjustedRowsB, colsB, adjustedColsB);
     
    int d_C_malloc_num = ((sizeof(T_IN_C) * matrixSizeC) <= MAX_CUDA_MALLOC_PER_CALL) ? 1 : (sizeof(T_IN_C) * matrixSizeC) / MAX_CUDA_MALLOC_PER_CALL;
    printf("DEBUG: C allocations %d\n", d_C_malloc_num);
-   size_t  adjustedMatrixSizeC = (d_C_malloc_num == 1) ? matrixSizeC :  MAX_CUDA_MALLOC_PER_CALL / sizeof(T_IN_C);
+   size_t adjustedMatrixSizeC = (d_C_malloc_num == 1) ? matrixSizeC :  MAX_CUDA_MALLOC_PER_CALL / sizeof(T_IN_C);
+   int adjustedRowsC = ((float) rowsC) / ((float)  matrixSizeC) * ((float) adjustedMatrixSizeC); 
+   printf("DEBUG: adjustedRowsC %d\n", adjustedRowsC);
+   int adjustedColsC = (adjustedMatrixSizeC / adjustedRowsC); 
+   adjustedMatrixSizeC = adjustedRowsC * adjustedColsC;
    printf("DEBUG: matrixSizeC %lu adjustedMatrixSizeC %lu\n", matrixSizeC,  adjustedMatrixSizeC);
+   printf("DEBUG: rowsC %d adjustedRowsC %d colsC %d adjustedColsC %d\n", rowsC, adjustedRowsC, colsC, adjustedColsC);
     
 
 
@@ -1291,6 +1306,7 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
   
   exit(ret);
 }
+
 
 
 
