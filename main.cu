@@ -787,6 +787,39 @@ static void test_engine(BlasOpts &blas_opts) {
     
 
 
+/**
+
+Revrese this logic to ser blas_opts.{m,n,k,ld}
+
+    matrixM = blas_opts.m;
+    matrixN = blas_opts.n;
+    matrixK = blas_opts.k;
+
+
+    if (blas_opts.transa != CUBLAS_OP_N) {
+      rowsA = imax(blas_opts.lda, matrixK);
+      colsA = matrixM;
+    } else {
+      rowsA = imax(blas_opts.lda, matrixM);
+      colsA = matrixK;
+    }
+    if (blas_opts.transb != CUBLAS_OP_N) {
+      rowsB = imax(blas_opts.ldb, matrixN);
+      colsB = matrixK;
+    } else {
+      rowsB = imax(blas_opts.ldb, matrixK);
+      colsB = matrixN;
+    }
+    rowsC = imax(blas_opts.ldc, matrixM);
+    colsC = matrixN;
+    rowsD = rowsC;
+    colsD = colsC;
+
+
+
+
+**/
+
     T_IN_A *d_A[d_A_malloc_num] {nullptr};
     T_IN_B *d_B[d_B_malloc_num] {nullptr};
     T_IN_C *d_C[d_C_malloc_num] {nullptr};
