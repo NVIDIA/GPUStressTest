@@ -6,6 +6,7 @@ cat $input | awk '
 BEGIN {
   GB=1073741824
   size["INT8"]=1
+  size["FP8"]=1
   size["FP16"]=2
   size["TF32"]=2
   size["FP64"]=16
@@ -15,7 +16,7 @@ BEGIN {
 /Initilizing/ {gpu=$2} 
 /memgb:/ {targetgb=$5}
 /STARTING TEST/ {test=$5}
-/matrixSizeA/ {A=$4; B=$6; C=$8}
+/FINAL/ {A=$6; B=$8; C=$10}
 /PASSED/ {
   ratio=((A + B + C) * size[test]) / (targetgb * GB)
   if (ratio > 0.80 && ratio  < 0.95) good=1; else good=0

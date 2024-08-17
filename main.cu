@@ -455,6 +455,7 @@ template <typename T_IN_A, typename T_IN_B, typename T_IN_C, typename T_OUT,
 static int lt_gemm(cublasLtHandle_t ltHandle, const BlasOpts &blas_opts,
                    T_IN_A *A, T_IN_B *B, T_IN_C *C, T_OUT *D, T_SCALE alpha,
                    T_SCALE beta, int lda, int ldb, int ldc) {
+#ifndef DEBUG_MATRIX_SIZES
   try {
     cublasLtMatmulDesc_t matmulDesc = NULL;
     void *workspace = nullptr;
@@ -595,6 +596,8 @@ static int lt_gemm(cublasLtHandle_t ltHandle, const BlasOpts &blas_opts,
           static_cast<const T_SCALE *>(&beta), C, CtransformDesc, D,
           DtransformDesc, workspace, workspaceSize, algo);
     }
+
+
     // ---------------------------------------------------------------------------------------------
     // computation
     char ta = operation_to_char(blas_opts.transa);
@@ -662,6 +665,7 @@ static int lt_gemm(cublasLtHandle_t ltHandle, const BlasOpts &blas_opts,
     cout << e.what() << endl;
     return 1;
   }
+#endif
 
   return 0;
 }
@@ -784,6 +788,7 @@ static void test_engine(BlasOpts &blas_opts) {
    printf("DEBUG: matrixSizeC %lu adjustedMatrixSizeC %lu\n", matrixSizeC,  adjustedMatrixSizeC);
    printf("DEBUG: rowsC %d adjustedRowsC %d colsC %d adjustedColsC %d\n", rowsC, adjustedRowsC, colsC, adjustedColsC);
     
+   printf("DEBUG: MATRIX SIZE FINAL A %lu B %lu C %lu\n", adjustedMatrixSizeA, adjustedMatrixSizeB, adjustedMatrixSizeC);
 
 
 /**
@@ -918,6 +923,8 @@ Revrese this logic to ser blas_opts.{m,n,k,ld}
             "cudaMemset for matrix D failed");
       }
     }
+#endif 
+
     cublasLtHandle_t ltHandle;
     cublas::cublas_check_error(cublasLtCreate(&ltHandle),
                                "create cublasLt handle failed");
@@ -928,6 +935,7 @@ Revrese this logic to ser blas_opts.{m,n,k,ld}
       has_error = true;
     }
 
+#ifndef DEBUG_MATRIX_SIZES
     cublas::device_memory::free(d_A[0]);
     cublas::device_memory::free(d_B[0]);
     cublas::device_memory::free(d_C[0]);
@@ -936,6 +944,7 @@ Revrese this logic to ser blas_opts.{m,n,k,ld}
     }
     cublas::cublas_check_error(cublasLtDestroy(ltHandle),
                                "destroy ltHandle failed");
+#endif
 
     if (has_error) {
       printf("testing cublasLt fail\n");
@@ -943,7 +952,7 @@ Revrese this logic to ser blas_opts.{m,n,k,ld}
     } else {
       printf("testing cublasLt pass\n");
     }
-#endif
+
 
   } catch (cublas::cuda_exception &e) {
     cout << e << endl;
@@ -1240,10 +1249,8 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
     break;
   }
 
-#ifndef DEBUG_MATRIX_SIZES
   printf("GPU Memory: %lld, memgb: %d\n", (long long) gpumem, memgb);
   printf("\n\n");
-#endif
 
   BlasOpts blas_opts;
 
@@ -1312,9 +1319,7 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
                     break;
                 }
             else
-#ifndef DEBUG_MATRIX_SIZES
                 printf("***** TEST PASSED ****\n");
-#endif
               continue;
             }
             tstate[t_num].end_time = time(NULL);
