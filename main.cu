@@ -788,7 +788,7 @@ static void test_engine(BlasOpts &blas_opts) {
    printf("DEBUG: matrixSizeC %lu adjustedMatrixSizeC %lu\n", matrixSizeC,  adjustedMatrixSizeC);
    printf("DEBUG: rowsC %d adjustedRowsC %d colsC %d adjustedColsC %d\n", rowsC, adjustedRowsC, colsC, adjustedColsC);
     
-   printf("DEBUG: MATRIX SIZE FINAL A %lu B %lu C %lu\n", adjustedMatrixSizeA, adjustedMatrixSizeB, adjustedMatrixSizeC);
+   printf("DEBUG: MATRIX SIZE FINAL A %lu B %lu C %lu\n", matrixSizeA, matrixSizeB, matrixSizeC);
 
 
 /**
