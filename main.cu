@@ -1,4 +1,3 @@
-
 /**
  * The MIT License (MIT)
  *
@@ -825,6 +824,7 @@ Revrese this logic to ser blas_opts.{m,n,k,ld}
     T_IN_C *d_C[d_C_malloc_num] {nullptr};
     T_OUT *d_D[d_C_malloc_num]  {nullptr};
 
+#ifndef DEBUG_MATRIX_SIZES
    printf("DEBUG: malloc\n");
     for(int ix = 0; ix < d_A_malloc_num; ix++) d_A[ix]  = 
         (T_IN_A *) cublas::device_memory::allocate<T_IN_A>(adjustedMatrixSizeA);
@@ -845,7 +845,6 @@ Revrese this logic to ser blas_opts.{m,n,k,ld}
         for(int ix = 0; ix <= d_C_malloc_num; ix++) d_D[ix]  = (T_OUT *) d_C[ix];
     }
    printf("DEBUG: D done\n");
-
 
     if (!blas_opts.filling_zero) {
       if (blas_opts.transa != CUBLAS_OP_N) {
@@ -944,6 +943,7 @@ Revrese this logic to ser blas_opts.{m,n,k,ld}
     } else {
       printf("testing cublasLt pass\n");
     }
+#endif
 
   } catch (cublas::cuda_exception &e) {
     cout << e << endl;
@@ -1152,7 +1152,7 @@ int main(int argc, char *argv[]) {
   printf("%s done capturing GPU information.\n", argv[0]);
 
 // These entries should match GST::test_suite; clever C++ way to range over the enum and cast to string not obvious...
-for (string gpu_name :  {"T4", "A100_40", "A100_80", "K80", "M60", "P40", "P100", "H100", "V100_16", "V100_32", "Generic", "NVIDIA Graphics Device"}) {
+for (string gpu_name :  {"T4", "A100_40", "A100_80", "K80", "M60", "P40", "P100", "H100", "H200", "V100_16", "V100_32", "Generic", "NVIDIA Graphics Device"}) {
 
 if (!gpu_name.compare(string("A100_80"))) { 
     printf("set A100_80\n");
@@ -1166,9 +1166,9 @@ else if (!gpu_name.compare(string("V100_32"))) {
 printf("DEBUG_MATRIX_SIZES: Checking matrix size only (no CUDA execution) for: %s\n", gpu_name.c_str());
 #endif
 
-//H100 temporay fix
+//H200 temporay fix
 if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
-    gpu_name = string("H100");    
+    gpu_name = string("H200");    
 }
   
   while (true) {
@@ -1240,9 +1240,10 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
     break;
   }
 
-
+#ifndef DEBUG_MATRIX_SIZES
   printf("GPU Memory: %lld, memgb: %d\n", (long long) gpumem, memgb);
   printf("\n\n");
+#endif
 
   BlasOpts blas_opts;
 
