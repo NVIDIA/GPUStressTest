@@ -1161,7 +1161,7 @@ int main(int argc, char *argv[]) {
   printf("%s done capturing GPU information.\n", argv[0]);
 
 // These entries should match GST::test_suite; clever C++ way to range over the enum and cast to string not obvious...
-for (string gpu_name :  {"T4", "A100_40", "A100_80", "K80", "M60", "P40", "P100", "H100", "H200", "V100_16", "V100_32", "Generic", "NVIDIA Graphics Device"}) {
+for (string gpu_name :  {"T4", "A100_40", "A100_80", "H100", "H200", "V100_16", "V100_32", "Generic", "NVIDIA Graphics Device"}) {
 
 if (!gpu_name.compare(string("A100_80"))) { 
     printf("set A100_80\n");
@@ -1200,30 +1200,6 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
         memgb = 16;
         break;
     }
-    if (gpu_name.find("K80", 0) != string::npos) {
-        cout << "Initilizing K80 based test suite" << endl;
-        gst = GST(GST::K80);
-        memgb = 11;
-        break;
-    }
-    if (gpu_name.find("M60", 0) != string::npos) {
-        cout << "Initilizing M60 based test suite" << endl;
-        gst = GST(GST::M60);
-        memgb = 8;
-        break;
-    }
-    if (gpu_name.find("P40", 0) != string::npos) {
-        cout << "Initilizing P40 based test suite" << endl;
-        gst = GST(GST::P40);
-        memgb = 22;
-        break;
-    }
-    if (gpu_name.find("P100", 0) != string::npos) {
-        cout << "Initilizing P100 based test suite" << endl;
-        gst = GST(GST::P100);
-        memgb = 16;
-        break;
-    }
     if (gpu_name.find("V100", 0) != string::npos) {
 
         if (gpumem > 30) {
@@ -1243,6 +1219,13 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
         memgb = 80;
         break;
     }
+    if (gpu_name.find("H200", 0) != string::npos) {
+        cout << "Initilizing H200 based test suite" << endl;
+        gst = GST(GST::H200);
+        memgb = 140;
+        break;
+    }
+
     cout << "Initilizing Generic test suite" << endl;
     gst = GST(GST::Generic);
     memgb = 8;
