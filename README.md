@@ -34,7 +34,7 @@ The project build properties in VSC need to be modified to point to the installa
 
 To allow all supported GPU types to mock execution to tune / check matrix sizes use:
 $ cd build
-$ cmake -DDEBUG_MATRIX_SIZES:BOOL="ON" ..
+$ cmake -DDEBUG_MATRIX_SIZES:BOOL="ON" .
 $ make
 $ ./gst > gst.out
 $ ../util/parse_memory_targets.bash 
