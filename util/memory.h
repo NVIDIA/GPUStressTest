@@ -64,6 +64,11 @@ T* allocate(size_t count = 1) {
   T* ptr = 0;
   size_t bytes = sizeof(T) * count;
 
+  printf("DEBUG: allocate count %lld * size %lld = %llu bytes\n", 
+          (unsigned long long) count, 
+          (unsigned long long) sizeof(T), 
+          (unsigned long long) bytes);
+
   cudaError_t cuda_error = cudaMalloc((void**)&ptr, bytes);
   if (cuda_error != cudaSuccess) {
     throw cuda_exception(cuda_error, "Failed to allocate memory");

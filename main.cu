@@ -77,10 +77,12 @@ https://github.com/microsoft/vcpkg.git
 #include <stdlib.h>
 #include <errno.h>
 #include <time.h>
+#include <typeinfo>
 
 /* GST specific */
 #include "GST.h"
-#define MAX_CUDA_MALLOC_PER_CALL   (5lu * (1024 * 1024 * 1024))
+#include <typeinfo> 
+#define MAX_CUDA_MALLOC_PER_CALL   (5LL * (1024 * 1024 * 1024))
 
 extern bool parse_in_math_scale_out_type(BlasOpts &blas_opts, const string &in_math_scale_out_type);
 
@@ -287,6 +289,9 @@ static double calc_matmul_perf_time(
       }
 
       const size_t baseIndex = loop;
+
+      printf("DEBUG: calling cublasLtMatmul typeof(A) %s typeof(B) %s typeof (C) %s\n",
+               typeid(A).name(), typeid(B).name(), typeid(C).name());
 
       apiTimingEvents[baseIndex].Start();
       cublas::cublas_check_error(
@@ -758,13 +763,17 @@ static void test_engine(BlasOpts &blas_opts) {
                 sizeof(T_IN_C) * matrixSizeC);
    }
 
+
+   printf("DEBUG: typeid(T_IN_A).name() %s sizeof(T_IN_A) %lu  typeid(T_IN_B).name() %s sizeof(T_IN_B) %lu  typeid(T_IN_C).name() %s sizeof(T_IN_C) %lu\n", typeid(T_IN_A).name(), sizeof(T_IN_A), typeid(T_IN_B).name(), sizeof(T_IN_B), typeid(T_IN_A).name(), sizeof(T_IN_C));
+
+
    int d_A_malloc_num = ((sizeof(T_IN_A) * matrixSizeA) <= MAX_CUDA_MALLOC_PER_CALL) ? 1 : (sizeof(T_IN_A) * matrixSizeA) / MAX_CUDA_MALLOC_PER_CALL;
    printf("DEBUG: A allocations %d\n", d_A_malloc_num);
    size_t adjustedMatrixSizeA = (d_A_malloc_num == 1) ? matrixSizeA :  MAX_CUDA_MALLOC_PER_CALL / sizeof(T_IN_A);
    int adjustedRowsA = ((float) rowsA) / ((float)  matrixSizeA) * ((float) adjustedMatrixSizeA); 
    printf("DEBUG: adjustedRowsA %d\n", adjustedRowsA);
    int adjustedColsA = (adjustedMatrixSizeA / adjustedRowsA); 
-   adjustedMatrixSizeA = adjustedRowsA * adjustedColsA;
+   adjustedMatrixSizeA = ((size_t) adjustedRowsA) * ((size_t) adjustedColsA);
    printf("DEBUG: matrixSizeA %lu adjustedMatrixSizeA %lu\n", matrixSizeA,  adjustedMatrixSizeA);
    printf("DEBUG: rowsA %d adjustedRowsA %d colsA %d adjustedColsA %d\n", rowsA, adjustedRowsA, colsA, adjustedColsA);
     
@@ -774,7 +783,7 @@ static void test_engine(BlasOpts &blas_opts) {
    int adjustedRowsB = ((float) rowsB) / ((float)  matrixSizeB) * ((float) adjustedMatrixSizeB); 
    printf("DEBUG: adjustedRowsB %d\n", adjustedRowsB);
    int adjustedColsB = (adjustedMatrixSizeB / adjustedRowsB); 
-   adjustedMatrixSizeB = adjustedRowsB * adjustedColsB;
+   adjustedMatrixSizeB = ((size_t) adjustedRowsB) * ((size_t) adjustedColsB);
    printf("DEBUG: matrixSizeB %lu adjustedMatrixSizeB %lu\n", matrixSizeB,  adjustedMatrixSizeB);
    printf("DEBUG: rowsB %d adjustedRowsB %d colsB %d adjustedColsB %d\n", rowsB, adjustedRowsB, colsB, adjustedColsB);
     
@@ -784,12 +793,11 @@ static void test_engine(BlasOpts &blas_opts) {
    int adjustedRowsC = ((float) rowsC) / ((float)  matrixSizeC) * ((float) adjustedMatrixSizeC); 
    printf("DEBUG: adjustedRowsC %d\n", adjustedRowsC);
    int adjustedColsC = (adjustedMatrixSizeC / adjustedRowsC); 
-   adjustedMatrixSizeC = adjustedRowsC * adjustedColsC;
+   adjustedMatrixSizeC = ((size_t) adjustedRowsC) * ((size_t) adjustedColsC);
    printf("DEBUG: matrixSizeC %lu adjustedMatrixSizeC %lu\n", matrixSizeC,  adjustedMatrixSizeC);
    printf("DEBUG: rowsC %d adjustedRowsC %d colsC %d adjustedColsC %d\n", rowsC, adjustedRowsC, colsC, adjustedColsC);
     
    printf("DEBUG: MATRIX SIZE FINAL A %lu B %lu C %lu\n", matrixSizeA, matrixSizeB, matrixSizeC);
-
 
 /**
 
@@ -827,7 +835,7 @@ Revrese this logic to ser blas_opts.{m,n,k,ld}
     T_IN_A *d_A[d_A_malloc_num] {nullptr};
     T_IN_B *d_B[d_B_malloc_num] {nullptr};
     T_IN_C *d_C[d_C_malloc_num] {nullptr};
-    T_OUT *d_D[d_C_malloc_num]  {nullptr};
+    T_OUT *d_D[d_C_malloc_num] {nullptr};
 
 #ifndef DEBUG_MATRIX_SIZES
    printf("DEBUG: malloc\n");
@@ -970,10 +978,12 @@ Revrese this logic to ser blas_opts.{m,n,k,ld}
 }
 
 #define TEST_ENGINE_MAPPING(T_IN_A, T_IN_B, T_IN_C, T_OUT, T_SCALE, T_MATH)    \
+  printf("DEBUG: enter macro\n"); \
   if ((blas_opts.input_type_a == T_IN_A) &&                                    \
       (blas_opts.input_type_b == T_IN_B) &&                                    \
       (blas_opts.input_type_c == T_IN_C) &&                                    \
       (blas_opts.output_type == T_OUT) && (blas_opts.scale_type == T_SCALE)) { \
+    printf("DEBUG: calling test_engine from macro\n"); \
     test_engine<typename CudaTypeEnumTraits<T_IN_A>::type,                     \
                 typename CudaTypeEnumTraits<T_IN_B>::type,                     \
                 typename CudaTypeEnumTraits<T_IN_C>::type,                     \
@@ -995,23 +1005,29 @@ static void test_cublasLt(BlasOpts &blas_opts) {
           printf("not supported for the FP8 options\n");
           return;
         }
+        printf("DEBUG: multiple TEST_ENGINE_MAPPING case 1\n");
         // sss A,B : FP32 ->  C FP32
         TEST_ENGINE_MAPPING(CUDA_R_32F, CUDA_R_32F, CUDA_R_32F, CUDA_R_32F,
                             CUDA_R_32F, CUDA_R_32F)
+        printf("DEBUG: multiple TEST_ENGINE_MAPPING case 2\n");
         // hss A,B FP16 ->  C FP32
         TEST_ENGINE_MAPPING(CUDA_R_16F, CUDA_R_16F, CUDA_R_32F, CUDA_R_32F,
                             CUDA_R_32F, CUDA_R_32F)
+        printf("DEBUG: multiple TEST_ENGINE_MAPPING case 3\n");
         // hsh A,B FP16 ->  C FP16
         TEST_ENGINE_MAPPING(CUDA_R_16F, CUDA_R_16F, CUDA_R_16F, CUDA_R_16F,
                             CUDA_R_32F, CUDA_R_32F)
         // qqssq A,B:fp8_e4m3, C:bfloat16, scale type: float, output type:
         // fp8_e4m3
+        printf("DEBUG: multiple TEST_ENGINE_MAPPING case 4\n");
         TEST_ENGINE_MAPPING(CUDA_R_8F_E4M3, CUDA_R_8F_E4M3, CUDA_R_16BF,
                             CUDA_R_8F_E4M3, CUDA_R_32F, CUDA_R_32F)
         // tss A,B : BF16 ->  C FP32
+        printf("DEBUG: multiple TEST_ENGINE_MAPPING case 5\n");
         TEST_ENGINE_MAPPING(CUDA_R_16BF, CUDA_R_16BF, CUDA_R_32F, CUDA_R_32F,
                             CUDA_R_32F, CUDA_R_32F)
         // tst A,B : BF16 ->  C BF16
+        printf("DEBUG: multiple TEST_ENGINE_MAPPING case 6\n");
         TEST_ENGINE_MAPPING(CUDA_R_16BF, CUDA_R_16BF, CUDA_R_16BF, CUDA_R_16BF,
                             CUDA_R_32F, CUDA_R_32F)
       } break;
