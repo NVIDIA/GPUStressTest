@@ -33,8 +33,10 @@ vcpkg install pthreads:x64-windows
 The project build properties in VSC need to be modified to point to the installation location of GPUStreesTest to find it’s util folder.
 
 To allow all supported GPU types to mock execution to tune / check matrix sizes use:
+```
+$ mkdir build
 $ cd build
-$ cmake -DDEBUG_MATRIX_SIZES:BOOL="ON" .
+$ cmake -DDEBUG_MATRIX_SIZES:BOOL="ON" ..
 $ make
 $ ./gst > gst.out
 $ ../util/parse_memory_targets.bash 
@@ -83,7 +85,7 @@ gpu H200 test C32 size 4 A 575352000 B 34418640000 C 532191168 targetgb 140 rati
 gpu H200 test FP32 size 4 A 575352000 B 34418640000 C 532191168 targetgb 140 ratio 0.945 good 1
 gpu H200 test FP64 size 8 A 481661360 B 16038810200 C 480784192 targetgb 140 ratio 0.905 good 1
 gpu H200 test FP8 size 1 A 3781723140 B 131854132800 C 1245717408 targetgb 140 ratio 0.911 good 1
-
+```
 
 
 

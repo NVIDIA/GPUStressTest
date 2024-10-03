@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.8.0)
 
 set(CUDA_HOME "/usr/local/cuda" CACHE STRING "" FORCE)
-set(GPUStressTest_HOME "/home/nv/dfisk/GPUStressTest" CACHE STRING "" FORCE)
+set(GPUStressTest_HOME "/home/josephw/GPUStressTest" CACHE STRING "" FORCE)
 set(LD_LIBRARY_PATH "${CUDA_HOME}/lib64;${LD_LIBRARY_PATH}")
 set(CMAKE_VERBOSE_MAKEFILE "ON" CACHE STRING "" FORCE)
+set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc" CACHE STRING "" FORCE)
 
 
 project(gst LANGUAGES CXX CUDA C)
