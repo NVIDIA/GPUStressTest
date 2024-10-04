@@ -13,12 +13,11 @@
 
 ### Windows MSVC Version
 
-- install CUDA
-- install visual studio
-- install vcpkg
-- install pthread
-- Right Click on Project -> Build Dependecies -> Build Customizations. following box will pop-up. Mark check for Cuda 12.6 (current version) and Click OK
-- Add Definition
+- install CUDA 12.X
+- install visual studio 2022
+- install vcpkg and pthread (See below)
+- add nvcc (Add Right Click on Project -> Build Dependecies -> Build Customizations. following box will pop-up. Mark check for Cuda 12.6 (current version) and Click OK, if you don't see it, add it.  it is in $(CUDA_PTH)\extras\visual_studio_integration\MSBuildExtensions\}
+- Add Definition DEBUG_MATRIX_SIZES to project property
 
 ### Windows GNU Version (Working...)
 
