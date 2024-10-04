@@ -1,3 +1,19 @@
+# 
+
+## Prerequisites
+
+### Ubuntu/WSL
+
+- install CUDA
+- sudo apt install build-essential
+- sudo apt install cmake
+
+
+### Windows
+
+- install CUDA
+
+
 To build gst in Linux, edit the CMakeLists.txt and set the location of CUDA 
 (default /usr/local/cuda) and the path to your local gst repository:
 e.g.
