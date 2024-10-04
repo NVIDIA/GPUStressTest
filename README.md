@@ -124,6 +124,6 @@ gpu H200 test FP8 size 1 A 3781723140 B 131854132800 C 1245717408 targetgb 140 r
 ### Prerequisites
 
 - cuda installed
-- msvc redistribution installed
+- msvc redistribution installed (maybe no need)
 - gst.exe + pthreadVC3.dll
 
