@@ -1,3 +1,32 @@
+# GST - GPU Stress Test
+
+# Build GST
+
+## Prerequisites
+
+### Ubuntu/WSL
+
+- install CUDA
+- sudo apt install build-essential
+- sudo apt install cmake
+
+
+### Windows MSVC Version
+
+- install CUDA 12.X
+- install visual studio 2022
+- install vcpkg and pthread (See below)
+- add nvcc (Add Right Click on Project -> Build Dependecies -> Build Customizations. following box will pop-up. Mark check for Cuda 12.6 (current version) and Click OK, if you don't see it, add it.  it is in $(CUDA_PTH)\extras\visual_studio_integration\MSBuildExtensions\}
+- Add Definition DEBUG_MATRIX_SIZES to project property
+
+### Windows GNU Version (Working...)
+
+- install MinGW https://phoenixnap.com/kb/install-gcc-windows
+- install visual studio
+- install cmake https://cmake.org/download/
+
+
+
 To build gst in Linux, edit the CMakeLists.txt and set the location of CUDA 
 (default /usr/local/cuda) and the path to your local gst repository:
 e.g.
@@ -32,10 +61,15 @@ vcpkg install pthreads:x64-windows
 
 The project build properties in VSC need to be modified to point to the installation location of GPUStreesTest to find it’s util folder.
 
+## Compile
+
 To allow all supported GPU types to mock execution to tune / check matrix sizes use:
+```
+$ mkdir build
 $ cd build
-$ cmake -DDEBUG_MATRIX_SIZES:BOOL="ON" .
+$ cmake -DDEBUG_MATRIX_SIZES:BOOL="ON" ..
 $ make
+
 $ ./gst > gst.out
 $ ../util/parse_memory_targets.bash 
 gpu T4 test FP16 size 2 A 2454022656 B 3329856000 C 1982169600 targetgb 16 ratio 0.904 good 1
@@ -83,7 +117,13 @@ gpu H200 test C32 size 4 A 575352000 B 34418640000 C 532191168 targetgb 140 rati
 gpu H200 test FP32 size 4 A 575352000 B 34418640000 C 532191168 targetgb 140 ratio 0.945 good 1
 gpu H200 test FP64 size 8 A 481661360 B 16038810200 C 480784192 targetgb 140 ratio 0.905 good 1
 gpu H200 test FP8 size 1 A 3781723140 B 131854132800 C 1245717408 targetgb 140 ratio 0.911 good 1
+```
 
+## Run gst on Windows
 
+### Prerequisites
 
+- cuda installed
+- msvc redistribution installed (maybe no need)
+- gst.exe + pthreadVC3.dll
 

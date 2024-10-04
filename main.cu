@@ -824,10 +824,15 @@ Revrese this logic to ser blas_opts.{m,n,k,ld}
 
 **/
 
-    T_IN_A *d_A[d_A_malloc_num] {nullptr};
-    T_IN_B *d_B[d_B_malloc_num] {nullptr};
-    T_IN_C *d_C[d_C_malloc_num] {nullptr};
-    T_OUT *d_D[d_C_malloc_num]  {nullptr};
+    //T_IN_A *d_A[d_A_malloc_num] {nullptr};
+    //T_IN_B *d_B[d_B_malloc_num] {nullptr};
+    //T_IN_C *d_C[d_C_malloc_num] {nullptr};
+    //T_OUT *d_D[d_C_malloc_num]  {nullptr};
+
+    T_IN_A **d_A = new T_IN_A *[d_A_malloc_num]{} ;
+    T_IN_B **d_B = new T_IN_B *[d_B_malloc_num]{} ;
+    T_IN_C **d_C = new T_IN_C *[d_C_malloc_num]{} ;
+    T_OUT  **d_D = new T_OUT  *[d_C_malloc_num]{} ;
 
 #ifndef DEBUG_MATRIX_SIZES
    printf("DEBUG: malloc\n");
