@@ -33,6 +33,15 @@
     <ClInclude Include="util\GST.h">
       <Filter>util</Filter>
     </ClInclude>
+    <ClInclude Include="util\fill_matrix.h">
+      <Filter>util</Filter>
+    </ClInclude>
+    <ClInclude Include="util\fillMatrixDevice_kernel.h">
+      <Filter>util</Filter>
+    </ClInclude>
+    <ClInclude Include="util\test_util.h">
+      <Filter>util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="util\device_info.cu">
@@ -41,15 +50,22 @@
     <CudaCompile Include="util\test_args.cu">
       <Filter>util</Filter>
     </CudaCompile>
+    <CudaCompile Include="main.cu" />
+    <CudaCompile Include="util\test_util.cu">
+      <Filter>util</Filter>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="util\measure.cc">
       <Filter>util</Filter>
     </ClCompile>
-    <CudaCompileCompile Include="main.cu" />
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />
     <None Include="vcpkg-configuration.json" />
+    <None Include="packages.config" />
+    <None Include="util\parse_memory_targets.bash">
+      <Filter>util</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="packages\vcpkg.C.Users.Administrator.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.vcpkg.props" Condition="Exists('packages\vcpkg.C.Users.Administrator.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.vcpkg.props')" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -24,15 +25,19 @@
     </CudaCompile>
     <CudaCompile Include="util\device_info.cu" />
     <CudaCompile Include="util\test_args.cu" />
+    <CudaCompile Include="util\test_util.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="util\command_line.h" />
     <ClInclude Include="util\common.h" />
     <ClInclude Include="util\common_header.h" />
     <ClInclude Include="util\exceptions.h" />
+    <ClInclude Include="util\fillMatrixDevice_kernel.h" />
+    <ClInclude Include="util\fill_matrix.h" />
     <ClInclude Include="util\gpu_stress.h" />
     <ClInclude Include="util\memory.h" />
     <ClInclude Include="util\test_args.h" />
+    <ClInclude Include="util\test_util.h" />
     <ClInclude Include="util\type_convert.h" />
     <ClInclude Include="util\GST.h" />
   </ItemGroup>
@@ -40,6 +45,8 @@
     <ClCompile Include="util\measure.cc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="util\parse_memory_targets.bash" />
     <None Include="vcpkg-configuration.json" />
     <None Include="vcpkg.json" />
   </ItemGroup>
@@ -116,6 +123,7 @@
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <AdditionalCompilerOptions>
       </AdditionalCompilerOptions>
+      <Include>C:\Users\Administrator\vcpkg\buildtrees\pthreads\src\4w-code-v3-a9b0a36b2a.clean</Include>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -141,7 +149,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;DEBUG_MATRIX_SIZES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -177,5 +185,13 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(CUDA_PATH)\extras\visual_studio_integration\MSBuildExtensions\CUDA 12.6.targets" />
+    <Import Project="packages\vcpkg.C.Users.Administrator.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.vcpkg.targets" Condition="Exists('packages\vcpkg.C.Users.Administrator.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.vcpkg.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\vcpkg.C.Users.Administrator.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.vcpkg.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\vcpkg.C.Users.Administrator.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.vcpkg.props'))" />
+    <Error Condition="!Exists('packages\vcpkg.C.Users.Administrator.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.vcpkg.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\vcpkg.C.Users.Administrator.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.vcpkg.targets'))" />
+  </Target>
 </Project>

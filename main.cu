@@ -80,7 +80,8 @@ https://github.com/microsoft/vcpkg.git
 
 /* GST specific */
 #include "GST.h"
-#define MAX_CUDA_MALLOC_PER_CALL   (5lu * (1024 * 1024 * 1024))
+#define MAX_CUDA_MALLOC_PER_CALL   (50llu * (1024 * 1024 * 1024))
+
 
 extern bool parse_in_math_scale_out_type(BlasOpts &blas_opts, const string &in_math_scale_out_type);
 
@@ -161,6 +162,8 @@ void* watchdog(void* in)
 
     return(NULL);
 }
+
+
 /* ---------------------------------------------------------------------------------------------------------------------------*/
 
 /*The base code for GST is cublasMatMulbench which accepts command 
@@ -287,13 +290,14 @@ static double calc_matmul_perf_time(
       }
 
       const size_t baseIndex = loop;
-
+      printf("DEBUG: cublasLtMatmul start");
       apiTimingEvents[baseIndex].Start();
       cublas::cublas_check_error(
           cublasLtMatmul(ltHandle, matmulDesc, alpha, A, Adesc, B, Bdesc, beta,
                          C, Cdesc, D, Ddesc, algo, workspace, workspaceSize, 0),
           "cublasLtMatmul failed");
       apiTimingEvents[baseIndex].Stop();
+      printf("DEBUG: cublasLtMatmul start");
 
       if (loop >= warmup_loops) {
         timingEvents[loop - warmup_loops].Stop(0);
@@ -665,6 +669,8 @@ static int lt_gemm(cublasLtHandle_t ltHandle, const BlasOpts &blas_opts,
     cout << e.what() << endl;
     return 1;
   }
+#else
+printf("************************************ DEBUG_MATRIX_SIZES IS SET *******************************************\n");
 #endif
 
   return 0;
@@ -678,8 +684,8 @@ static void test_engine(BlasOpts &blas_opts) {
     T_SCALE alpha = cuGet<T_SCALE>(blas_opts.alpha);
     T_SCALE beta = cuGet<T_SCALE>(blas_opts.beta);
     int matrixM = 0, matrixN = 0, matrixK = 0;
-    int rowsA = 0, rowsB = 0, rowsC = 0, rowsD = 0;
-    int colsA = 0, colsB = 0, colsC = 0, colsD = 0;
+    size_t rowsA = 0ul, rowsB = 0ul, rowsC = 0ul, rowsD = 0ul;
+    size_t colsA = 0ul, colsB = 0ul, colsC = 0ul, colsD = 0ul;
     size_t matrixSizeA = 0, matrixSizeB = 0, matrixSizeC = 0, matrixSizeD = 0;
 
     // make sure no error
@@ -746,49 +752,58 @@ static void test_engine(BlasOpts &blas_opts) {
     matrixSizeD = (size_t) rowsD * colsD;
 
     if (blas_opts.m_outOfPlace) {
-        printf("Allocate matrixSize Total A + B + C + D:  %ld \n",
+        printf("Allocate matrixSize Bytes Total A + B + C + D:  %llu \n",
                 sizeof(T_IN_A) * matrixSizeA +
                 sizeof(T_IN_B) * matrixSizeB +
                 sizeof(T_IN_C) * matrixSizeC +
-	        sizeof(T_IN_C) * matrixSizeD);
+	            sizeof(T_IN_C) * matrixSizeD);
    } else {
-        printf("Allocate matrixSize Total A + B + C:  %ld \n",
+        printf("Allocate matrixSize Bytes Total A + B + C:  %llu \n",
                 sizeof(T_IN_A) * matrixSizeA +
                 sizeof(T_IN_B) * matrixSizeB +
                 sizeof(T_IN_C) * matrixSizeC);
    }
+   
+   printf("DEBUG: rowsA %llu colsA %llu\n", rowsA, colsA);
+   printf("DEBUG: rowsB %llu colsB %llu\n", rowsB, colsB);
+   printf("DEBUG: rowsC %llu colsC %llu\n", rowsC, colsC);
 
-   int d_A_malloc_num = ((sizeof(T_IN_A) * matrixSizeA) <= MAX_CUDA_MALLOC_PER_CALL) ? 1 : (sizeof(T_IN_A) * matrixSizeA) / MAX_CUDA_MALLOC_PER_CALL;
-   printf("DEBUG: A allocations %d\n", d_A_malloc_num);
+   printf("DEBUG: matrixSizeA in elements %llu\n", matrixSizeA);
+   printf("DEBUG: matrixSizeB in elements %llu == %llu == %llu * %llu\n",
+           matrixSizeB, rowsB * colsB, rowsB, colsB);
+   printf("DEBUG: matrixSizeC in elements %llu\n", matrixSizeC);
+
+   size_t d_A_malloc_num = ((sizeof(T_IN_A) * matrixSizeA) <= MAX_CUDA_MALLOC_PER_CALL) ? 1 : (sizeof(T_IN_A) * matrixSizeA) / MAX_CUDA_MALLOC_PER_CALL;
+   printf("DEBUG: A allocations %llu\n", d_A_malloc_num);
    size_t adjustedMatrixSizeA = (d_A_malloc_num == 1) ? matrixSizeA :  MAX_CUDA_MALLOC_PER_CALL / sizeof(T_IN_A);
-   int adjustedRowsA = ((float) rowsA) / ((float)  matrixSizeA) * ((float) adjustedMatrixSizeA); 
-   printf("DEBUG: adjustedRowsA %d\n", adjustedRowsA);
-   int adjustedColsA = (adjustedMatrixSizeA / adjustedRowsA); 
+   size_t adjustedRowsA = ((double) rowsA) / ((double)  matrixSizeA) * ((double) adjustedMatrixSizeA); 
+   printf("DEBUG: adjustedRowsA %llu\n", adjustedRowsA);
+   size_t adjustedColsA = (adjustedMatrixSizeA / adjustedRowsA); 
    adjustedMatrixSizeA = adjustedRowsA * adjustedColsA;
-   printf("DEBUG: matrixSizeA %lu adjustedMatrixSizeA %lu\n", matrixSizeA,  adjustedMatrixSizeA);
-   printf("DEBUG: rowsA %d adjustedRowsA %d colsA %d adjustedColsA %d\n", rowsA, adjustedRowsA, colsA, adjustedColsA);
+   printf("DEBUG: matrixSizeA %llu adjustedMatrixSizeA %llu\n", matrixSizeA,  adjustedMatrixSizeA);
+   printf("DEBUG: rowsA %llu adjustedRowsA %llu colsA %llu adjustedColsA %llu\n", rowsA, adjustedRowsA, colsA, adjustedColsA);
     
-   int d_B_malloc_num = ((sizeof(T_IN_B) * matrixSizeB) <= MAX_CUDA_MALLOC_PER_CALL) ? 1 : (sizeof(T_IN_B) * matrixSizeB) / MAX_CUDA_MALLOC_PER_CALL;
-   printf("DEBUG: B allocations %d\n", d_B_malloc_num);
+   size_t d_B_malloc_num = ((sizeof(T_IN_B) * matrixSizeB) <= MAX_CUDA_MALLOC_PER_CALL) ? 1 : (sizeof(T_IN_B) * matrixSizeB) / MAX_CUDA_MALLOC_PER_CALL;
+   printf("DEBUG: B allocations %llu\n", d_B_malloc_num);
    size_t adjustedMatrixSizeB = (d_B_malloc_num == 1) ? matrixSizeB :  MAX_CUDA_MALLOC_PER_CALL / sizeof(T_IN_B);
-   int adjustedRowsB = ((float) rowsB) / ((float)  matrixSizeB) * ((float) adjustedMatrixSizeB); 
+   size_t adjustedRowsB = ((double) rowsB) / ((double)  matrixSizeB) * ((double) adjustedMatrixSizeB); 
    printf("DEBUG: adjustedRowsB %d\n", adjustedRowsB);
-   int adjustedColsB = (adjustedMatrixSizeB / adjustedRowsB); 
+   size_t adjustedColsB = (adjustedMatrixSizeB / adjustedRowsB); 
    adjustedMatrixSizeB = adjustedRowsB * adjustedColsB;
-   printf("DEBUG: matrixSizeB %lu adjustedMatrixSizeB %lu\n", matrixSizeB,  adjustedMatrixSizeB);
-   printf("DEBUG: rowsB %d adjustedRowsB %d colsB %d adjustedColsB %d\n", rowsB, adjustedRowsB, colsB, adjustedColsB);
+   printf("DEBUG: matrixSizeB %llu adjustedMatrixSizeB %llu\n", matrixSizeB,  adjustedMatrixSizeB);
+   printf("DEBUG: rowsB %llu adjustedRowsB %llu colsB %llu adjustedColsB %llu\n", rowsB, adjustedRowsB, colsB, adjustedColsB);
     
-   int d_C_malloc_num = ((sizeof(T_IN_C) * matrixSizeC) <= MAX_CUDA_MALLOC_PER_CALL) ? 1 : (sizeof(T_IN_C) * matrixSizeC) / MAX_CUDA_MALLOC_PER_CALL;
-   printf("DEBUG: C allocations %d\n", d_C_malloc_num);
+   size_t d_C_malloc_num = ((sizeof(T_IN_C) * matrixSizeC) <= MAX_CUDA_MALLOC_PER_CALL) ? 1 : (sizeof(T_IN_C) * matrixSizeC) / MAX_CUDA_MALLOC_PER_CALL;
+   printf("DEBUG: C allocations %llu\n", d_C_malloc_num);
    size_t adjustedMatrixSizeC = (d_C_malloc_num == 1) ? matrixSizeC :  MAX_CUDA_MALLOC_PER_CALL / sizeof(T_IN_C);
-   int adjustedRowsC = ((float) rowsC) / ((float)  matrixSizeC) * ((float) adjustedMatrixSizeC); 
-   printf("DEBUG: adjustedRowsC %d\n", adjustedRowsC);
-   int adjustedColsC = (adjustedMatrixSizeC / adjustedRowsC); 
+   size_t adjustedRowsC = ((double) rowsC) / ((double)  matrixSizeC) * ((double) adjustedMatrixSizeC); 
+   printf("DEBUG: adjustedRowsC %llu\n", adjustedRowsC);
+   size_t adjustedColsC = (adjustedMatrixSizeC / adjustedRowsC); 
    adjustedMatrixSizeC = adjustedRowsC * adjustedColsC;
-   printf("DEBUG: matrixSizeC %lu adjustedMatrixSizeC %lu\n", matrixSizeC,  adjustedMatrixSizeC);
-   printf("DEBUG: rowsC %d adjustedRowsC %d colsC %d adjustedColsC %d\n", rowsC, adjustedRowsC, colsC, adjustedColsC);
+   printf("DEBUG: matrixSizeC %llu adjustedMatrixSizeC %llu\n", matrixSizeC,  adjustedMatrixSizeC);
+   printf("DEBUG: rowsC %llu adjustedRowsC %llu colsC %d adjustedColsC %llu\n", rowsC, adjustedRowsC, colsC, adjustedColsC);
     
-   printf("DEBUG: MATRIX SIZE FINAL A %lu B %lu C %lu\n", matrixSizeA, matrixSizeB, matrixSizeC);
+   printf("DEBUG: MATRIX SIZE FINAL A %llu B %llu C %llu\n", matrixSizeA, matrixSizeB, matrixSizeC);
 
 
 /**
@@ -824,11 +839,7 @@ Revrese this logic to ser blas_opts.{m,n,k,ld}
 
 **/
 
-    //T_IN_A *d_A[d_A_malloc_num] {nullptr};
-    //T_IN_B *d_B[d_B_malloc_num] {nullptr};
-    //T_IN_C *d_C[d_C_malloc_num] {nullptr};
-    //T_OUT *d_D[d_C_malloc_num]  {nullptr};
-
+printf("DEBUG: Matrix Meemory Allocation start");
     T_IN_A **d_A = new T_IN_A *[d_A_malloc_num]{} ;
     T_IN_B **d_B = new T_IN_B *[d_B_malloc_num]{} ;
     T_IN_C **d_C = new T_IN_C *[d_C_malloc_num]{} ;
