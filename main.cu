@@ -1,3 +1,4 @@
+
 /**
  * The MIT License (MIT)
  *
@@ -80,8 +81,6 @@ https://github.com/microsoft/vcpkg.git
 
 /* GST specific */
 #include "GST.h"
-#define MAX_CUDA_MALLOC_PER_CALL   (50llu * (1024 * 1024 * 1024))
-
 
 extern bool parse_in_math_scale_out_type(BlasOpts &blas_opts, const string &in_math_scale_out_type);
 
@@ -162,8 +161,6 @@ void* watchdog(void* in)
 
     return(NULL);
 }
-
-
 /* ---------------------------------------------------------------------------------------------------------------------------*/
 
 /*The base code for GST is cublasMatMulbench which accepts command 
@@ -290,14 +287,13 @@ static double calc_matmul_perf_time(
       }
 
       const size_t baseIndex = loop;
-      printf("DEBUG: cublasLtMatmul start");
+
       apiTimingEvents[baseIndex].Start();
       cublas::cublas_check_error(
           cublasLtMatmul(ltHandle, matmulDesc, alpha, A, Adesc, B, Bdesc, beta,
                          C, Cdesc, D, Ddesc, algo, workspace, workspaceSize, 0),
           "cublasLtMatmul failed");
       apiTimingEvents[baseIndex].Stop();
-      printf("DEBUG: cublasLtMatmul start");
 
       if (loop >= warmup_loops) {
         timingEvents[loop - warmup_loops].Stop(0);
@@ -459,7 +455,6 @@ template <typename T_IN_A, typename T_IN_B, typename T_IN_C, typename T_OUT,
 static int lt_gemm(cublasLtHandle_t ltHandle, const BlasOpts &blas_opts,
                    T_IN_A *A, T_IN_B *B, T_IN_C *C, T_OUT *D, T_SCALE alpha,
                    T_SCALE beta, int lda, int ldb, int ldc) {
-#ifndef DEBUG_MATRIX_SIZES
   try {
     cublasLtMatmulDesc_t matmulDesc = NULL;
     void *workspace = nullptr;
@@ -600,8 +595,6 @@ static int lt_gemm(cublasLtHandle_t ltHandle, const BlasOpts &blas_opts,
           static_cast<const T_SCALE *>(&beta), C, CtransformDesc, D,
           DtransformDesc, workspace, workspaceSize, algo);
     }
-
-
     // ---------------------------------------------------------------------------------------------
     // computation
     char ta = operation_to_char(blas_opts.transa);
@@ -669,9 +662,6 @@ static int lt_gemm(cublasLtHandle_t ltHandle, const BlasOpts &blas_opts,
     cout << e.what() << endl;
     return 1;
   }
-#else
-printf("************************************ DEBUG_MATRIX_SIZES IS SET *******************************************\n");
-#endif
 
   return 0;
 }
@@ -681,11 +671,15 @@ template <typename T_IN_A, typename T_IN_B, typename T_IN_C, typename T_OUT,
 static void test_engine(BlasOpts &blas_opts) {
   printf("testing cublasLt\n");
   try {
+    T_IN_A *d_A = nullptr;
+    T_IN_B *d_B = nullptr;
+    T_IN_C *d_C = nullptr;
+    T_OUT *d_D = nullptr;
     T_SCALE alpha = cuGet<T_SCALE>(blas_opts.alpha);
     T_SCALE beta = cuGet<T_SCALE>(blas_opts.beta);
     int matrixM = 0, matrixN = 0, matrixK = 0;
-    size_t rowsA = 0ul, rowsB = 0ul, rowsC = 0ul, rowsD = 0ul;
-    size_t colsA = 0ul, colsB = 0ul, colsC = 0ul, colsD = 0ul;
+    int rowsA = 0, rowsB = 0, rowsC = 0, rowsD = 0;
+    int colsA = 0, colsB = 0, colsC = 0, colsD = 0;
     size_t matrixSizeA = 0, matrixSizeB = 0, matrixSizeC = 0, matrixSizeD = 0;
 
     // make sure no error
@@ -746,131 +740,36 @@ static void test_engine(BlasOpts &blas_opts) {
     rowsD = rowsC;
     colsD = colsC;
 
-    matrixSizeA = (size_t) rowsA * colsA;
-    matrixSizeB = (size_t) rowsB * colsB;
-    matrixSizeC = (size_t) rowsC * colsC;
-    matrixSizeD = (size_t) rowsD * colsD;
+    matrixSizeA = (size_t)rowsA * colsA;
+    matrixSizeB = (size_t)rowsB * colsB;
+    matrixSizeC = (size_t)rowsC * colsC;
+    matrixSizeD = (size_t)rowsD * colsD;
 
     if (blas_opts.m_outOfPlace) {
         printf("Allocate matrixSize Bytes Total A + B + C + D:  %llu \n",
                 sizeof(T_IN_A) * matrixSizeA +
                 sizeof(T_IN_B) * matrixSizeB +
                 sizeof(T_IN_C) * matrixSizeC +
-	            sizeof(T_IN_C) * matrixSizeD);
+	        sizeof(T_IN_C) * matrixSizeD);
    } else {
-        printf("Allocate matrixSize Bytes Total A + B + C:  %llu \n",
+        printf("Allocate matrixSize Total Bytes A + B + C:  %llu \n",
                 sizeof(T_IN_A) * matrixSizeA +
                 sizeof(T_IN_B) * matrixSizeB +
                 sizeof(T_IN_C) * matrixSizeC);
    }
-   
-   printf("DEBUG: rowsA %llu colsA %llu\n", rowsA, colsA);
-   printf("DEBUG: rowsB %llu colsB %llu\n", rowsB, colsB);
-   printf("DEBUG: rowsC %llu colsC %llu\n", rowsC, colsC);
 
-   printf("DEBUG: matrixSizeA in elements %llu\n", matrixSizeA);
-   printf("DEBUG: matrixSizeB in elements %llu == %llu == %llu * %llu\n",
-           matrixSizeB, rowsB * colsB, rowsB, colsB);
-   printf("DEBUG: matrixSizeC in elements %llu\n", matrixSizeC);
+    d_A = cublas::device_memory::allocate<T_IN_A>(matrixSizeA);
+    d_B = cublas::device_memory::allocate<T_IN_B>(matrixSizeB);
+    d_C = cublas::device_memory::allocate<T_IN_C>(matrixSizeC);
+    d_D = blas_opts.m_outOfPlace
+              ?  cublas::device_memory::allocate<T_OUT>(matrixSizeC)
+              : (T_OUT *)d_C;
 
-   size_t d_A_malloc_num = ((sizeof(T_IN_A) * matrixSizeA) <= MAX_CUDA_MALLOC_PER_CALL) ? 1 : (sizeof(T_IN_A) * matrixSizeA) / MAX_CUDA_MALLOC_PER_CALL;
-   printf("DEBUG: A allocations %llu\n", d_A_malloc_num);
-   size_t adjustedMatrixSizeA = (d_A_malloc_num == 1) ? matrixSizeA :  MAX_CUDA_MALLOC_PER_CALL / sizeof(T_IN_A);
-   size_t adjustedRowsA = ((double) rowsA) / ((double)  matrixSizeA) * ((double) adjustedMatrixSizeA); 
-   printf("DEBUG: adjustedRowsA %llu\n", adjustedRowsA);
-   size_t adjustedColsA = (adjustedMatrixSizeA / adjustedRowsA); 
-   adjustedMatrixSizeA = adjustedRowsA * adjustedColsA;
-   printf("DEBUG: matrixSizeA %llu adjustedMatrixSizeA %llu\n", matrixSizeA,  adjustedMatrixSizeA);
-   printf("DEBUG: rowsA %llu adjustedRowsA %llu colsA %llu adjustedColsA %llu\n", rowsA, adjustedRowsA, colsA, adjustedColsA);
-    
-   size_t d_B_malloc_num = ((sizeof(T_IN_B) * matrixSizeB) <= MAX_CUDA_MALLOC_PER_CALL) ? 1 : (sizeof(T_IN_B) * matrixSizeB) / MAX_CUDA_MALLOC_PER_CALL;
-   printf("DEBUG: B allocations %llu\n", d_B_malloc_num);
-   size_t adjustedMatrixSizeB = (d_B_malloc_num == 1) ? matrixSizeB :  MAX_CUDA_MALLOC_PER_CALL / sizeof(T_IN_B);
-   size_t adjustedRowsB = ((double) rowsB) / ((double)  matrixSizeB) * ((double) adjustedMatrixSizeB); 
-   printf("DEBUG: adjustedRowsB %d\n", adjustedRowsB);
-   size_t adjustedColsB = (adjustedMatrixSizeB / adjustedRowsB); 
-   adjustedMatrixSizeB = adjustedRowsB * adjustedColsB;
-   printf("DEBUG: matrixSizeB %llu adjustedMatrixSizeB %llu\n", matrixSizeB,  adjustedMatrixSizeB);
-   printf("DEBUG: rowsB %llu adjustedRowsB %llu colsB %llu adjustedColsB %llu\n", rowsB, adjustedRowsB, colsB, adjustedColsB);
-    
-   size_t d_C_malloc_num = ((sizeof(T_IN_C) * matrixSizeC) <= MAX_CUDA_MALLOC_PER_CALL) ? 1 : (sizeof(T_IN_C) * matrixSizeC) / MAX_CUDA_MALLOC_PER_CALL;
-   printf("DEBUG: C allocations %llu\n", d_C_malloc_num);
-   size_t adjustedMatrixSizeC = (d_C_malloc_num == 1) ? matrixSizeC :  MAX_CUDA_MALLOC_PER_CALL / sizeof(T_IN_C);
-   size_t adjustedRowsC = ((double) rowsC) / ((double)  matrixSizeC) * ((double) adjustedMatrixSizeC); 
-   printf("DEBUG: adjustedRowsC %llu\n", adjustedRowsC);
-   size_t adjustedColsC = (adjustedMatrixSizeC / adjustedRowsC); 
-   adjustedMatrixSizeC = adjustedRowsC * adjustedColsC;
-   printf("DEBUG: matrixSizeC %llu adjustedMatrixSizeC %llu\n", matrixSizeC,  adjustedMatrixSizeC);
-   printf("DEBUG: rowsC %llu adjustedRowsC %llu colsC %d adjustedColsC %llu\n", rowsC, adjustedRowsC, colsC, adjustedColsC);
-    
-   printf("DEBUG: MATRIX SIZE FINAL A %llu B %llu C %llu\n", matrixSizeA, matrixSizeB, matrixSizeC);
-
-
-/**
-
-Revrese this logic to ser blas_opts.{m,n,k,ld}
-
-    matrixM = blas_opts.m;
-    matrixN = blas_opts.n;
-    matrixK = blas_opts.k;
-
-
-    if (blas_opts.transa != CUBLAS_OP_N) {
-      rowsA = imax(blas_opts.lda, matrixK);
-      colsA = matrixM;
-    } else {
-      rowsA = imax(blas_opts.lda, matrixM);
-      colsA = matrixK;
-    }
-    if (blas_opts.transb != CUBLAS_OP_N) {
-      rowsB = imax(blas_opts.ldb, matrixN);
-      colsB = matrixK;
-    } else {
-      rowsB = imax(blas_opts.ldb, matrixK);
-      colsB = matrixN;
-    }
-    rowsC = imax(blas_opts.ldc, matrixM);
-    colsC = matrixN;
-    rowsD = rowsC;
-    colsD = colsC;
-
-
-
-
-**/
-
-printf("DEBUG: Matrix Meemory Allocation start");
-    T_IN_A **d_A = new T_IN_A *[d_A_malloc_num]{} ;
-    T_IN_B **d_B = new T_IN_B *[d_B_malloc_num]{} ;
-    T_IN_C **d_C = new T_IN_C *[d_C_malloc_num]{} ;
-    T_OUT  **d_D = new T_OUT  *[d_C_malloc_num]{} ;
-
-#ifndef DEBUG_MATRIX_SIZES
-   printf("DEBUG: malloc\n");
-    for(int ix = 0; ix < d_A_malloc_num; ix++) d_A[ix]  = 
-        (T_IN_A *) cublas::device_memory::allocate<T_IN_A>(adjustedMatrixSizeA);
-   printf("DEBUG: A done\n");
-
-    for(int ix = 0; ix < d_B_malloc_num; ix++) d_B[ix]  = 
-        (T_IN_B *) cublas::device_memory::allocate<T_IN_B>(adjustedMatrixSizeB);
-   printf("DEBUG: B done\n");
-
-    for(int ix = 0; ix < d_C_malloc_num; ix++) d_C[ix]  = 
-        (T_IN_C *) cublas::device_memory::allocate<T_IN_C>(adjustedMatrixSizeC);
-   printf("DEBUG: C done\n");
-
-    if (blas_opts.m_outOfPlace) {
-        for(int ix = 0; ix <= d_C_malloc_num; ix++) d_D[ix]  = 
-            (T_OUT *) cublas::device_memory::allocate<T_OUT>(adjustedMatrixSizeC);
-    } else {
-        for(int ix = 0; ix <= d_C_malloc_num; ix++) d_D[ix]  = (T_OUT *) d_C[ix];
-    }
-   printf("DEBUG: D done\n");
 
     if (!blas_opts.filling_zero) {
       if (blas_opts.transa != CUBLAS_OP_N) {
         cublas::cuda_check_error(
-            fillMatrixDevice(make_bufferBatchVariant(d_A[0], matrixSizeA),
+            fillMatrixDevice(make_bufferBatchVariant(d_A, matrixSizeA),
                              matrixSizeA, rowsA, blas_opts.k, blas_opts.m,
                              CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P',
                              0, 0, 0, true,
@@ -880,7 +779,7 @@ printf("DEBUG: Matrix Meemory Allocation start");
             "fillMatrixDevice for matrix A failed");
       } else {
         cublas::cuda_check_error(
-            fillMatrixDevice(make_bufferBatchVariant(d_A[0], matrixSizeA),
+            fillMatrixDevice(make_bufferBatchVariant(d_A, matrixSizeA),
                              matrixSizeA, rowsA, blas_opts.m, blas_opts.k,
                              CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P',
                              0, 0, 0, true,
@@ -892,7 +791,7 @@ printf("DEBUG: Matrix Meemory Allocation start");
 
       if (blas_opts.transb != CUBLAS_OP_N) {
         cublas::cuda_check_error(
-            fillMatrixDevice(make_bufferBatchVariant(d_B[0], matrixSizeB),
+            fillMatrixDevice(make_bufferBatchVariant(d_B, matrixSizeB),
                              matrixSizeB, rowsB, blas_opts.n, blas_opts.k,
                              CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P',
                              121, 0, 0, true,
@@ -902,7 +801,7 @@ printf("DEBUG: Matrix Meemory Allocation start");
             "fillMatrixDevice for matrix B failed");
       } else {
         cublas::cuda_check_error(
-            fillMatrixDevice(make_bufferBatchVariant(d_B[0], matrixSizeB),
+            fillMatrixDevice(make_bufferBatchVariant(d_B, matrixSizeB),
                              matrixSizeB, rowsB, blas_opts.k, blas_opts.n,
                              CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P',
                              121, 0, 0, true,
@@ -913,54 +812,51 @@ printf("DEBUG: Matrix Meemory Allocation start");
       }
 
       cublas::cuda_check_error(
-          fillMatrixDevice(make_bufferBatchVariant(d_C[0], matrixSizeC),
+          fillMatrixDevice(make_bufferBatchVariant(d_C, matrixSizeC),
                            matrixSizeC, rowsC, blas_opts.m, blas_opts.n,
                            CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P', 0,
                            0, 0, true, 1),
           "fillMatrixDevice for matrix C failed");
       if (blas_opts.m_outOfPlace) {
         cublas::cuda_check_error(
-            fillMatrixDevice(make_bufferBatchVariant(d_D[0], matrixSizeC),
+            fillMatrixDevice(make_bufferBatchVariant(d_D, matrixSizeC),
                              matrixSizeC, rowsC, blas_opts.m, blas_opts.n,
                              CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P',
                              0, 0, 0, true, 1),
             "fillMatrixDevice for matrix D failed");
       }
     } else {
-      cublas::cuda_check_error(cudaMemset(d_A[0], 0, sizeof(T_IN_A) * matrixSizeA),
+      cublas::cuda_check_error(cudaMemset(d_A, 0, sizeof(T_IN_A) * matrixSizeA),
                                "cudaMemset for matrix A failed");
-      cublas::cuda_check_error(cudaMemset(d_B[0], 0, sizeof(T_IN_B) * matrixSizeB),
+      cublas::cuda_check_error(cudaMemset(d_B, 0, sizeof(T_IN_B) * matrixSizeB),
                                "cudaMemset for matrix B failed");
-      cublas::cuda_check_error(cudaMemset(d_C[0], 0, sizeof(T_IN_C) * matrixSizeC),
+      cublas::cuda_check_error(cudaMemset(d_C, 0, sizeof(T_IN_C) * matrixSizeC),
                                "cudaMemset for matrix C failed");
       if (blas_opts.m_outOfPlace) {
         cublas::cuda_check_error(
-            cudaMemset(d_D[0], 0, sizeof(T_OUT) * matrixSizeC),
+            cudaMemset(d_D, 0, sizeof(T_OUT) * matrixSizeC),
             "cudaMemset for matrix D failed");
       }
     }
-#endif 
-
     cublasLtHandle_t ltHandle;
     cublas::cublas_check_error(cublasLtCreate(&ltHandle),
                                "create cublasLt handle failed");
 
     bool has_error = false;
     if (lt_gemm<T_IN_A, T_IN_B, T_IN_C, T_OUT, T_MATH, T_SCALE>(
-            ltHandle, blas_opts, d_A[0], d_B[0], d_C[0], d_D[0], alpha, beta, rowsA, rowsB, rowsC)) {
+            ltHandle, blas_opts, d_A, d_B, d_C, d_D, alpha, beta, rowsA, rowsB,
+            rowsC)) {
       has_error = true;
     }
 
-#ifndef DEBUG_MATRIX_SIZES
-    cublas::device_memory::free(d_A[0]);
-    cublas::device_memory::free(d_B[0]);
-    cublas::device_memory::free(d_C[0]);
+    cublas::device_memory::free(d_A);
+    cublas::device_memory::free(d_B);
+    cublas::device_memory::free(d_C);
     if (blas_opts.m_outOfPlace) {
-      cublas::device_memory::free(d_D[0]);
+      cublas::device_memory::free(d_D);
     }
     cublas::cublas_check_error(cublasLtDestroy(ltHandle),
                                "destroy ltHandle failed");
-#endif
 
     if (has_error) {
       printf("testing cublasLt fail\n");
@@ -968,7 +864,6 @@ printf("DEBUG: Matrix Meemory Allocation start");
     } else {
       printf("testing cublasLt pass\n");
     }
-
 
   } catch (cublas::cuda_exception &e) {
     cout << e << endl;
@@ -1177,7 +1072,7 @@ int main(int argc, char *argv[]) {
   printf("%s done capturing GPU information.\n", argv[0]);
 
 // These entries should match GST::test_suite; clever C++ way to range over the enum and cast to string not obvious...
-for (string gpu_name :  {"T4", "A100_40", "A100_80", "H100", "H200", "V100_16", "V100_32", "Generic", "NVIDIA Graphics Device"}) {
+for (string gpu_name :  {"T4", "A100_40", "A100_80", "K80", "M60", "P40", "P100", "H100", "H200", "V100_16", "V100_32", "Generic", "NVIDIA Graphics Device"}) {
 
 if (!gpu_name.compare(string("A100_80"))) { 
     printf("set A100_80\n");
@@ -1190,12 +1085,7 @@ else if (!gpu_name.compare(string("V100_32"))) {
 
 printf("DEBUG_MATRIX_SIZES: Checking matrix size only (no CUDA execution) for: %s\n", gpu_name.c_str());
 #endif
-
-//H200 temporay fix
-if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
-    gpu_name = string("H200");    
-}
-  
+ 
   while (true) {
     if (gpu_name.find("A100", 0) != string::npos) {
 
@@ -1213,6 +1103,30 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
     if (gpu_name.find("T4", 0) != string::npos) {
         cout << "Initilizing T4 based test suite" << endl;
         gst = GST(GST::T4);
+        memgb = 16;
+        break;
+    }
+    if (gpu_name.find("K80", 0) != string::npos) {
+        cout << "Initilizing K80 based test suite" << endl;
+        gst = GST(GST::K80);
+        memgb = 11;
+        break;
+    }
+    if (gpu_name.find("M60", 0) != string::npos) {
+        cout << "Initilizing M60 based test suite" << endl;
+        gst = GST(GST::M60);
+        memgb = 8;
+        break;
+    }
+    if (gpu_name.find("P40", 0) != string::npos) {
+        cout << "Initilizing P40 based test suite" << endl;
+        gst = GST(GST::P40);
+        memgb = 22;
+        break;
+    }
+    if (gpu_name.find("P100", 0) != string::npos) {
+        cout << "Initilizing P100 based test suite" << endl;
+        gst = GST(GST::P100);
         memgb = 16;
         break;
     }
@@ -1241,12 +1155,12 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
         memgb = 140;
         break;
     }
-
     cout << "Initilizing Generic test suite" << endl;
     gst = GST(GST::Generic);
     memgb = 8;
     break;
   }
+
 
   printf("GPU Memory: %lld, memgb: %d\n", (long long) gpumem, memgb);
   printf("\n\n");
@@ -1287,7 +1201,7 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
             reset_blas_opts(command_line, blas_opts);
             gst.dump_test_args(t_num);
 
-	    blas_opts.m = gst.stress_tests[t_num].m_arg;
+	        blas_opts.m = gst.stress_tests[t_num].m_arg;
             blas_opts.n = gst.stress_tests[t_num].n_arg;
             blas_opts.k = gst.stress_tests[t_num].k_arg;
             blas_opts.transa = (cublasOperation_t) gst.stress_tests[t_num].ta_arg;
@@ -1318,7 +1232,9 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
                     break;
                 }
             else
+#ifndef DEBUG_MATRIX_SIZES
                 printf("***** TEST PASSED ****\n");
+#endif
               continue;
             }
             tstate[t_num].end_time = time(NULL);
@@ -1344,7 +1260,6 @@ if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
   
   exit(ret);
 }
-
 
 
 
