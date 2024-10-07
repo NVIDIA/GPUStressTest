@@ -746,13 +746,13 @@ static void test_engine(BlasOpts &blas_opts) {
     matrixSizeD = (size_t)rowsD * colsD;
 
     if (blas_opts.m_outOfPlace) {
-        printf("Allocate matrixSize Bytes Total A + B + C + D:  %llu \n",
+        printf("Allocate matrixSize Bytes Total A + B + C + D:  %lu \n",
                 sizeof(T_IN_A) * matrixSizeA +
                 sizeof(T_IN_B) * matrixSizeB +
                 sizeof(T_IN_C) * matrixSizeC +
 	        sizeof(T_IN_C) * matrixSizeD);
    } else {
-        printf("Allocate matrixSize Total Bytes A + B + C:  %llu \n",
+        printf("Allocate matrixSize Total Bytes A + B + C:  %lu \n",
                 sizeof(T_IN_A) * matrixSizeA +
                 sizeof(T_IN_B) * matrixSizeB +
                 sizeof(T_IN_C) * matrixSizeC);
@@ -1201,12 +1201,104 @@ printf("DEBUG_MATRIX_SIZES: Checking matrix size only (no CUDA execution) for: %
             reset_blas_opts(command_line, blas_opts);
             gst.dump_test_args(t_num);
 
-	        blas_opts.m = gst.stress_tests[t_num].m_arg;
+            if (gst.stress_tests[t_num].P_arg.compare(0, 3, "sss") == 0 ) {
+                blas_opts.input_type_a = CUDA_R_32F;
+                blas_opts.input_type_b = CUDA_R_32F;
+                blas_opts.input_type_c = CUDA_R_32F;
+                blas_opts.output_type = CUDA_R_32F;
+                blas_opts.math_type = CUDA_R_32F;
+                blas_opts.scale_type = CUDA_R_32F;
+            } else if (gst.stress_tests[t_num].P_arg.compare(0, 3, "hss") == 0) {
+                blas_opts.input_type_a = CUDA_R_16F;
+                blas_opts.input_type_b = CUDA_R_16F;
+                blas_opts.input_type_c = CUDA_R_32F;
+                blas_opts.output_type = CUDA_R_32F;
+                blas_opts.math_type = CUDA_R_32F;
+                blas_opts.scale_type = CUDA_R_32F;
+            } else if (gst.stress_tests[t_num].P_arg.compare(0, 3, "hsh") == 0) {
+                blas_opts.input_type_a = CUDA_R_16F;
+                blas_opts.input_type_b = CUDA_R_16F;
+                blas_opts.input_type_c = CUDA_R_16F;
+                blas_opts.output_type = CUDA_R_16F;
+                blas_opts.math_type = CUDA_R_32F;
+                blas_opts.scale_type = CUDA_R_32F;
+            } else if (gst.stress_tests[t_num].P_arg.compare(0, 5, "qqssq") == 0) {
+                blas_opts.input_type_a = CUDA_R_8F_E4M3;
+                blas_opts.input_type_b = CUDA_R_8F_E4M3;
+                blas_opts.input_type_c = CUDA_R_16BF;
+                blas_opts.output_type = CUDA_R_8F_E4M3;
+                blas_opts.math_type = CUDA_R_32F;
+                blas_opts.scale_type = CUDA_R_32F;
+            } else if (gst.stress_tests[t_num].P_arg.compare(0, 3, "tss") == 0 ) {
+                blas_opts.input_type_a = CUDA_R_16BF;
+                blas_opts.input_type_b = CUDA_R_16BF;
+                blas_opts.input_type_c = CUDA_R_32F;
+                blas_opts.output_type = CUDA_R_32F;
+                blas_opts.math_type = CUDA_R_32F;
+                blas_opts.scale_type = CUDA_R_32F;
+            } else if (gst.stress_tests[t_num].P_arg.compare(0, 3, "tst") == 0 ) {
+                blas_opts.input_type_a = CUDA_R_16BF;
+                blas_opts.input_type_b = CUDA_R_16BF;
+                blas_opts.input_type_c = CUDA_R_16BF;
+                blas_opts.output_type = CUDA_R_16BF;
+                blas_opts.math_type = CUDA_R_32F;
+                blas_opts.scale_type = CUDA_R_32F;
+            } else if (gst.stress_tests[t_num].P_arg.compare(0, 3, "ccc") == 0) {
+                blas_opts.input_type_a = CUDA_C_32F;
+                blas_opts.input_type_b = CUDA_C_32F;
+                blas_opts.input_type_c = CUDA_C_32F;
+                blas_opts.output_type = CUDA_C_32F;
+                blas_opts.math_type = CUDA_C_32F;
+                blas_opts.scale_type = CUDA_C_32F;
+            } else if (gst.stress_tests[t_num].P_arg.compare(0, 3, "ddd") == 0) {
+                blas_opts.input_type_a = CUDA_R_64F;
+                blas_opts.input_type_b = CUDA_R_64F;
+                blas_opts.input_type_c = CUDA_R_64F;
+                blas_opts.output_type = CUDA_R_64F;
+                blas_opts.math_type = CUDA_R_64F;
+                blas_opts.scale_type = CUDA_R_64F;
+            } else if (gst.stress_tests[t_num].P_arg.compare(0, 3, "zzz") == 0) {
+                blas_opts.input_type_a = CUDA_C_64F;
+                blas_opts.input_type_b = CUDA_C_64F;
+                blas_opts.input_type_c = CUDA_C_64F;
+                blas_opts.output_type = CUDA_C_64F;
+                blas_opts.math_type = CUDA_C_64F;
+                blas_opts.scale_type = CUDA_C_64F;
+            } else if (gst.stress_tests[t_num].P_arg.compare(0, 3, "hhh") == 0) {
+                blas_opts.input_type_a = CUDA_R_16F;
+                blas_opts.input_type_b = CUDA_R_16F;
+                blas_opts.input_type_c = CUDA_R_16F;
+                blas_opts.output_type = CUDA_R_16F;
+                blas_opts.math_type = CUDA_R_16F;
+                blas_opts.scale_type = CUDA_R_16F;
+            } else if (gst.stress_tests[t_num].P_arg.compare(0, 9, "bisb_imma") == 0) {
+                blas_opts.input_type_a = CUDA_R_8I;
+                blas_opts.input_type_b = CUDA_R_8I;
+                blas_opts.input_type_c = CUDA_R_8I;
+                blas_opts.output_type = CUDA_R_8I;
+                blas_opts.math_type = CUDA_R_32I;
+                blas_opts.scale_type = CUDA_R_32I;
+            } else if (gst.stress_tests[t_num].P_arg.compare(0, 9, "bisb_imma") == 0) {
+                blas_opts.input_type_a = CUDA_R_8I;
+                blas_opts.input_type_b = CUDA_R_8I;
+                blas_opts.input_type_c = CUDA_R_32I;
+                blas_opts.output_type = CUDA_R_32I;
+                blas_opts.math_type = CUDA_R_32I;
+                blas_opts.scale_type = CUDA_R_32I;
+            }
+
+            blas_opts.m = gst.stress_tests[t_num].m_arg;
             blas_opts.n = gst.stress_tests[t_num].n_arg;
             blas_opts.k = gst.stress_tests[t_num].k_arg;
             blas_opts.transa = (cublasOperation_t) gst.stress_tests[t_num].ta_arg;
             blas_opts.transb = (cublasOperation_t) gst.stress_tests[t_num].tb_arg;
-            blas_opts.beta_opt = gst.stress_tests[t_num].B_arg;
+            blas_opts.beta = gst.stress_tests[t_num].B_arg;
+            blas_opts.transb_opt = true;
+            blas_opts.m_opt = true;
+            blas_opts.n_opt = true;
+            blas_opts.beta_opt = true;
+
+
 
             printf("\n***** STARTING TEST %d: %s On Device %d %s\n", t_num, gst.stress_tests[t_num].test_name, dev, devprops[dev].name);
             fflush(stdout);
