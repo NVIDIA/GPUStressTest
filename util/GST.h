@@ -284,12 +284,13 @@ private:
 
 
     void init_v100_32() {
-        stress_tests[0].test_name = "FP16";
+
+        stress_tests[0].test_name = "FP64";
         stress_tests[0].test_state = 0;
-        stress_tests[0].P_arg = "hsh";
-        stress_tests[0].m_arg = 10364;
-        stress_tests[0].n_arg = 27648;
-        stress_tests[0].k_arg = 98304;
+        stress_tests[0].P_arg = "ddd";
+        stress_tests[0].m_arg = 30432;
+        stress_tests[0].n_arg = 30000;
+        stress_tests[0].k_arg = 17170;
         stress_tests[0].ta_arg = 0;
         stress_tests[0].tb_arg = 1;
         stress_tests[0].B_arg = 0;
@@ -314,12 +315,12 @@ private:
         stress_tests[2].tb_arg = 1;
         stress_tests[2].B_arg = 0;
 
-        stress_tests[3].test_name = "FP64";
+        stress_tests[3].test_name = "FP16";
         stress_tests[3].test_state = 0;
-        stress_tests[3].P_arg = "zzz";
-        stress_tests[3].m_arg = 30432;
-        stress_tests[3].n_arg = 30000;
-        stress_tests[3].k_arg = 17170;
+        stress_tests[3].P_arg = "hsh";
+        stress_tests[3].m_arg = 10364;
+        stress_tests[3].n_arg = 27648;
+        stress_tests[3].k_arg = 98304;
         stress_tests[3].ta_arg = 0;
         stress_tests[3].tb_arg = 1;
         stress_tests[3].B_arg = 0;

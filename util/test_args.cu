@@ -85,7 +85,7 @@ void printCuType(const char *str, cuDoubleComplex A) {
           cuCimag(A));
 }
 
-static inline cublasComputeType_t cudaDataType2computeType(cudaDataType_t type,
+cublasComputeType_t cudaDataType2computeType(cudaDataType_t type,
                                                            bool pedantic) {
   switch (type) {
     case CUDA_R_32F:
@@ -116,7 +116,18 @@ static bool parse_epilogue(BlasOpts &blas_opts, const string &epilogue) {
 }
 #undef EPILOGUE_MAPPING
 
-#define IN_OUT_MATH_SCALE_TYPE_MAPPING(key, T_IN_A, T_IN_B, T_IN_C, T_OUT,                                        T_MATH, T_SCALE, T_COMPUTE)           if (in_math_scale_out_type == key) {                                         blas_opts.input_type_a = T_IN_A;                                           blas_opts.input_type_b = T_IN_B;                                           blas_opts.input_type_c = T_IN_C;                                           blas_opts.output_type = T_OUT;                                             blas_opts.math_type = T_MATH;                                              blas_opts.scale_type = T_SCALE;                                            blas_opts.compute_type = T_COMPUTE;                                        return true;                                                             }
+#define IN_OUT_MATH_SCALE_TYPE_MAPPING(key, T_IN_A, T_IN_B, T_IN_C, T_OUT, \
+                                       T_MATH, T_SCALE, T_COMPUTE)         \
+  if (in_math_scale_out_type == key) {                                     \
+    blas_opts.input_type_a = T_IN_A;                                       \
+    blas_opts.input_type_b = T_IN_B;                                       \
+    blas_opts.input_type_c = T_IN_C;                                       \
+    blas_opts.output_type = T_OUT;                                         \
+    blas_opts.math_type = T_MATH;                                          \
+    blas_opts.scale_type = T_SCALE;                                        \
+    blas_opts.compute_type = T_COMPUTE;                                    \
+    return true;                                                           \
+  }
 
 bool parse_in_math_scale_out_type(BlasOpts &blas_opts,
                                          const string &in_math_scale_out_type) {
@@ -418,12 +429,7 @@ void reset_blas_opts(CommandLine& command_line, BlasOpts &blas_opts)
   blas_opts.m = DEFAULT_1024;
   blas_opts.n = DEFAULT_1024;
   blas_opts.k = DEFAULT_1024;
-  if (command_line.check_cmd_line_flag("T")) {
-     command_line.get_cmd_line_argument("T", blas_opts.timing_loop);
- }
- else {
-     blas_opts.timing_loop = 10;
- }
+  blas_opts.timing_loop = 1;
   blas_opts.m_orderingA = CUBLASLT_ORDER_COL;
   blas_opts.m_orderingB = CUBLASLT_ORDER_COL;
   blas_opts.m_orderingC = CUBLASLT_ORDER_COL;
@@ -433,6 +439,13 @@ void reset_blas_opts(CommandLine& command_line, BlasOpts &blas_opts)
   blas_opts.m_outOfPlace = false;
   blas_opts.m_epilogue = CUBLASLT_EPILOGUE_DEFAULT;
   blas_opts.quick_autotuning = false;
+
+ if (command_line.check_cmd_line_flag("T")) {
+     command_line.get_cmd_line_argument("T", blas_opts.timing_loop);
+ }
+ else {
+     blas_opts.timing_loop = 10;
+ }
 
 }
 
