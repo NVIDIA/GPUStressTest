@@ -1,4 +1,4 @@
-/* 
+/**
  * The MIT License (MIT)
  *
  * Copyright (c) 2020 NVIDIA
@@ -9,10 +9,10 @@
  * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
  * the Software, and to permit persons to whom the Software is furnished to do so,
  * subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
  * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
@@ -39,6 +39,7 @@
  *
  ******************************************************************************/
 
+
 #pragma once
 
 /**
@@ -63,6 +64,8 @@
 //#include <cublas_v2.h>
 #include <cublas_api.h>
 //#include <cuda_bf16.h>
+#include <cuda_fp8.h>
+
 
 
 using std::string;
@@ -85,7 +88,9 @@ struct BlasOpts {
   bool transb_opt;
   cublasOperation_t transc;
   bool transc_opt;
-  cudaDataType_t input_type;
+  cudaDataType_t input_type_a;
+  cudaDataType_t input_type_b;
+  cudaDataType_t input_type_c;
   cudaDataType_t output_type;
   cudaDataType_t scale_type;
   cudaDataType_t math_type;
@@ -107,12 +112,16 @@ struct BlasOpts {
   bool alpha_opt;
   float beta;
   bool beta_opt;
+  bool filling_zero;
   cublasLtOrder_t m_orderingA;
   bool m_orderingA_opt;
   cublasLtOrder_t m_orderingB;
   bool m_orderingB_opt;
   cublasLtOrder_t m_orderingC;
   bool m_orderingC_opt;
+  bool m_outOfPlace;
+  cublasLtEpilogue_t m_epilogue;
+  bool quick_autotuning;
 };
 
 template <typename T_MATH> void printGemmSOL(int mathMode, double computeSeconds, int iterations, int m, int n, int k, int algorithm);

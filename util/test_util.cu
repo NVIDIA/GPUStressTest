@@ -40,15 +40,20 @@
  ******************************************************************************/
 
 
-#pragma once
-#include "command_line.h"
-#include "common_header.h"
-using cublas::CommandLine;
+#include "test_util.h"
 
-void parse_args(CommandLine &command_line, BlasOpts &blas_opts);
+static __global__ void wait_kernel_impl(volatile int32_t* counter, int32_t threshold) {
+  static const int64_t WAIT_CYCLES = 1024;
+  static const int64_t CYCLES_PER_SECOND = 2000000000LL;
+  int64_t tstart = clock64();
+  while (*counter < threshold && (clock64() - tstart) < 10 * CYCLES_PER_SECOND) {
+    int64_t elapsed = 0, t0 = clock64();
+    do {
+      elapsed = clock64() - t0;
+    } while (elapsed < WAIT_CYCLES);
+  }
+}
 
-char operation_to_char(cublasOperation_t op);
+void wait_kernel(volatile int32_t* counter, int32_t threshold) { wait_kernel_impl<<<1, 1>>>(counter, threshold); }
 
-template <typename T_ELEM>
-void printCuType(const char *str, T_ELEM A);
 
