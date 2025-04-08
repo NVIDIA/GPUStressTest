@@ -1,7 +1,7 @@
-FROM ubuntu:18.04 AS OS
+FROM ubuntu:22.04 AS OS
 RUN  mkdir -p /nvidia
 COPY software/gst /nvidia/gst
-COPY software/libcublasLt.so.11 /nvidia/libcublasLt.so.11
+COPY software/libcublasLt.so.12 /nvidia/libcublasLt.so.12
 COPY software/libcudart.so /nvidia/libcudart.so
 COPY software/libcuda.so.1  /nvidia/libcuda.so.1 
 #COPY software/NVIDIA-Linux-x86_64-450.51.07.run /nvidia/
