@@ -1,4 +1,3 @@
-
 /**
  * The MIT License (MIT)
  *
@@ -50,16 +49,14 @@
 ** exit -1 on fail.
 **
 */
-#include "common_header.h"
+#include <memory>
 #include "command_line.h"
-#include "test_args.h"
-#include "test_util.h"
+#include "common_header.h"
 #include "exceptions.h"
 #include "fillMatrixDevice_kernel.h"
 #include "memory.h"
-#include "type_convert.h"
-#include "common.h"
-#include <cuda_runtime.h>
+#include "test_args.h"
+#include "test_util.h"
 
 /* fault injection */
 #include <thread>        
@@ -82,7 +79,6 @@ https://github.com/microsoft/vcpkg.git
 /* GST specific */
 #include "GST.h"
 
-extern bool parse_in_math_scale_out_type(BlasOpts &blas_opts, const string &in_math_scale_out_type);
 extern cublasComputeType_t cudaDataType2computeType(cudaDataType_t type,
                                                            bool pedantic);
 
@@ -172,9 +168,25 @@ void* watchdog(void* in)
 ** on a V100 for reference and drives the GPU to full power, TFLOPS and memory
 */
 
-
 using namespace std::chrono;
 using cublas::CommandLine;
+using namespace cublas::device_memory;
+
+template <cublasLtMatmulMatrixScale_t>
+struct ScaleModeEnumTraits;
+
+#define MAKE_SCALE_MODE_TRAITS(type_enum, type_, vscale_size_) \
+  template <>                                                  \
+  struct ScaleModeEnumTraits<type_enum> {                      \
+    using type = type_;                                        \
+    static constexpr int vscaleSize = vscale_size_;            \
+  };
+
+MAKE_SCALE_MODE_TRAITS(CUBLASLT_MATMUL_MATRIX_SCALE_SCALAR_32F, float, 1);
+MAKE_SCALE_MODE_TRAITS(CUBLASLT_MATMUL_MATRIX_SCALE_VEC16_UE4M3, __nv_fp8_e4m3, 16);
+MAKE_SCALE_MODE_TRAITS(CUBLASLT_MATMUL_MATRIX_SCALE_VEC32_UE8M0, __nv_fp8_e8m0, 32);
+
+#undef MAKE_SCALE_MODE_TRAITS
 
 static float median(std::vector<float> &times) {
   const size_t size = times.size();
@@ -272,7 +284,7 @@ static double calc_matmul_perf_time(
   cublas::cuda_check_error(cudaDeviceSynchronize(),
                            "cudaDeviceSynchronize failed");
 
-  int warmup_loops = 1;
+  int warmup_loops = blas_opts.warmup_loops;
 
   wait_kernel_set_semaphore(semaphoreControls.waitCtrHostPtr, 0);
 
@@ -344,7 +356,6 @@ static double calc_matmul_perf_time(
 
   double kernel_time = mean;
 
-  /****
   fprintf(stdout,
           "^^^^ gpu time statistics: runs %d, mean %f ms, min %f ms, 20 "
           "percent %f ms, "
@@ -352,7 +363,6 @@ static double calc_matmul_perf_time(
           "%f ms\n",
           blas_opts.timing_loop, (double)mean, (double)min,
           (double)percentile20, (double)percentile50, (double)max);
-   ***/
 
   double cudaTime = kernel_time * size / 1000.;
   return cudaTime;
@@ -453,10 +463,12 @@ static void auto_tuning(cublasLtHandle_t ltHandle,
 }
 
 template <typename T_IN_A, typename T_IN_B, typename T_IN_C, typename T_OUT,
-          typename T_MATH, typename T_SCALE>
+          typename T_MATH, typename T_SCALE, typename T_SFX>
 static int lt_gemm(cublasLtHandle_t ltHandle, const BlasOpts &blas_opts,
-                   T_IN_A *A, T_IN_B *B, T_IN_C *C, T_OUT *D, T_SCALE alpha,
-                   T_SCALE beta, int lda, int ldb, int ldc) {
+                   T_IN_A *A, T_IN_B *B, T_IN_C *C, T_OUT *D, T_SFX *SFA,
+                   T_SFX *SFB, T_SFX *SFD, T_SCALE alpha,
+                   T_SCALE beta, int lda, int ldb, int ldc, size_t batchStrideA,
+                   size_t batchStrideB, size_t batchStrideC, size_t batchStrideD) {
   try {
     cublasLtMatmulDesc_t matmulDesc = NULL;
     void *workspace = nullptr;
@@ -470,8 +482,7 @@ static int lt_gemm(cublasLtHandle_t ltHandle, const BlasOpts &blas_opts,
         blas_opts.m_orderingC == CUBLASLT_ORDER_COL ? ldc : 32 * ldc;
 
     int device_version = 0;
-    cublas::cuda_check_error(get_device_version(device_version),
-                             "get device version failed");
+    get_device_version(device_version);
     // 4MB on prior architectures and 32MB on Hopper
     size_t workspaceSize =
         (device_version < 900) ? 1024 * 1024 * 4 : 1024 * 1024 * 32;
@@ -519,24 +530,50 @@ static int lt_gemm(cublasLtHandle_t ltHandle, const BlasOpts &blas_opts,
       cublas::cuda_check_error(
           cudaMalloc(&Bias, blas_opts.m * sizeof(BiasType)),
           "cudaMalloc for Bias failed");
-      if (!blas_opts.filling_zero) {
-        cublas::cuda_check_error(
-            fillMatrixDevice(make_bufferBatchVariant(Bias, blas_opts.m),
-                             blas_opts.m, blas_opts.m, blas_opts.m, 1,
-                             CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P',
-                             0, 0, 0, true, 1),
-            "fillMatrixDevice Bias failed");
-      } else {
-        cublas::cuda_check_error(
-            cudaMemset(Bias, 0, blas_opts.m * sizeof(BiasType)),
-            "cudaMemset for Bias failed");
-      }
+      cublas::cuda_check_error(
+          fillMatrixDevice(make_bufferBatchVariant(Bias, blas_opts.m),
+                           blas_opts.m, blas_opts.m, blas_opts.m, 1,
+                           CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT,
+                           blas_opts.fillingPattern, 0, 0, blas_opts.filling_sd,
+                           true, 1),
+          "fillMatrixDevice Bias failed");
       cublas::cublas_check_error(
           cublasLtMatmulDescSetAttribute(matmulDesc,
                                          CUBLASLT_MATMUL_DESC_BIAS_POINTER,
                                          &Bias, sizeof(Bias)),
           "set DESC_BIAS_POINTER failed");
     }
+
+    #define STR(x) #x
+    #define XSTR(x) STR(x)
+    #define SET_SCALE_MODE(matrix_name, desc_name, scale_mode) \
+      cublas::cublas_check_error( \
+          cublasLtMatmulDescSetAttribute(matmulDesc, \
+                                         CUBLASLT_MATMUL_DESC_##desc_name##_SCALE_POINTER, \
+                                         &SF##matrix_name, sizeof(void*)), \
+          "set DESC_" XSTR(desc_name) "_SCALE_POINTER failed"); \
+      int matrix_name##ScaleMode = scale_mode; \
+      cublas::cublas_check_error( \
+          cublasLtMatmulDescSetAttribute(matmulDesc, \
+                                         CUBLASLT_MATMUL_DESC_##desc_name##_SCALE_MODE, \
+                                         &matrix_name##ScaleMode, sizeof(int)), \
+          "set DESC_" XSTR(desc_name) "_SCALE_MODE failed");
+
+    if (blas_opts.case_name == "mxqqhsq") {
+      SET_SCALE_MODE(A, A, CUBLASLT_MATMUL_MATRIX_SCALE_VEC32_UE8M0)
+      SET_SCALE_MODE(B, B, CUBLASLT_MATMUL_MATRIX_SCALE_VEC32_UE8M0)
+      SET_SCALE_MODE(D, D_OUT, CUBLASLT_MATMUL_MATRIX_SCALE_VEC32_UE8M0)
+    }
+
+    if (blas_opts.case_name == "nvoohso") {
+      SET_SCALE_MODE(A, A, CUBLASLT_MATMUL_MATRIX_SCALE_VEC16_UE4M3)
+      SET_SCALE_MODE(B, B, CUBLASLT_MATMUL_MATRIX_SCALE_VEC16_UE4M3)
+      SET_SCALE_MODE(D, D_OUT, CUBLASLT_MATMUL_MATRIX_SCALE_VEC16_UE4M3)
+    }
+    #undef SET_SCALE_MODE
+    #undef XSTR
+    #undef STR
+
     // ---------------------------------------------------------------------------------------------
     // create descriptors for transformed matrices
 
@@ -588,14 +625,71 @@ static int lt_gemm(cublasLtHandle_t ltHandle, const BlasOpts &blas_opts,
       DtransformDesc = CtransformDesc;
     }
 
-    cublasLtMatmulAlgo_t algo;
+    if (blas_opts.useBatch) {
+      cublas::cublas_check_error(
+          cublasLtMatrixLayoutSetAttribute(
+              AtransformDesc, CUBLASLT_MATRIX_LAYOUT_BATCH_COUNT,
+              &blas_opts.N, sizeof(blas_opts.N)),
+          "set BATCH_COUNT for AtransformDesc failed");
+      cublas::cublas_check_error(
+          cublasLtMatrixLayoutSetAttribute(
+              BtransformDesc, CUBLASLT_MATRIX_LAYOUT_BATCH_COUNT,
+              &blas_opts.N, sizeof(blas_opts.N)),
+          "set BATCH_COUNT for BtransformDesc failed");
+      cublas::cublas_check_error(
+          cublasLtMatrixLayoutSetAttribute(
+              CtransformDesc, CUBLASLT_MATRIX_LAYOUT_BATCH_COUNT,
+              &blas_opts.N, sizeof(blas_opts.N)),
+          "set BATCH_COUNT for CtransformDesc failed");
+      int64_t batchStride = batchStrideA;
+      cublas::cublas_check_error(
+          cublasLtMatrixLayoutSetAttribute(
+              AtransformDesc, CUBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET,
+              &batchStride, sizeof(batchStride)),
+          "set STRIDED_BATCH_OFFSET for AtransformDesc failed");
+      batchStride = batchStrideB;
+      cublas::cublas_check_error(
+          cublasLtMatrixLayoutSetAttribute(
+              BtransformDesc, CUBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET,
+              &batchStride, sizeof(batchStride)),
+          "set STRIDED_BATCH_OFFSET for BtransformDesc failed");
+      batchStride = batchStrideC;
+      cublas::cublas_check_error(
+          cublasLtMatrixLayoutSetAttribute(
+              CtransformDesc, CUBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET,
+              &batchStride, sizeof(batchStride)),
+          "set STRIDED_BATCH_OFFSET for CtransformDesc failed");
+
+      if (blas_opts.m_outOfPlace) {
+        cublas::cublas_check_error(
+            cublasLtMatrixLayoutSetAttribute(
+                DtransformDesc, CUBLASLT_MATRIX_LAYOUT_BATCH_COUNT,
+                &blas_opts.N, sizeof(blas_opts.N)),
+            "set BATCH_COUNT for DtransformDesc failed");
+        int64_t batchStride = batchStrideD;
+        cublas::cublas_check_error(
+            cublasLtMatrixLayoutSetAttribute(
+                DtransformDesc, CUBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET,
+                &batchStride, sizeof(batchStride)),
+            "set STRIDED_BATCH_OFFSET for DtransformDesc failed");
+      }
+
+    }
+
+    std::unique_ptr<cublasLtMatmulAlgo_t> algo;
     if (blas_opts.quick_autotuning) {
+      algo = std::make_unique<cublasLtMatmulAlgo_t>();
       auto_tuning<T_IN_A, T_IN_B, T_IN_C, T_OUT, T_MATH, T_SCALE>(
           ltHandle, matmulDesc, static_cast<const T_SCALE *>(&alpha),
           static_cast<const T_IN_A *>(A), AtransformDesc,
           static_cast<const T_IN_B *>(B), BtransformDesc,
           static_cast<const T_SCALE *>(&beta), C, CtransformDesc, D,
-          DtransformDesc, workspace, workspaceSize, algo);
+          DtransformDesc, workspace, workspaceSize, *algo);
+    }
+
+    if (is_fit_tune_hsh_for_hopper(blas_opts)) {
+      algo = std::make_unique<cublasLtMatmulAlgo_t>();
+      tune_hsh_algo_for_hopper(ltHandle, *algo);
     }
     // ---------------------------------------------------------------------------------------------
     // computation
@@ -606,8 +700,11 @@ static int lt_gemm(cublasLtHandle_t ltHandle, const BlasOpts &blas_opts,
     printCuType(" alpha =", alpha);
     printCuType(" beta=", beta);
     printf("\n");
-    printf("#### args: lda=%d ldb=%d ldc=%d ldd=%d loop=%d\n", ldatransform,
-           ldbtransform, ldctransform, ldctransform, blas_opts.timing_loop);
+    printf("#### args: lda=%d ldb=%d ldc=%d ldd=%d N=%d loop=%d warmup_loop=%d\n", ldatransform,
+           ldbtransform, ldctransform, ldctransform, blas_opts.N, blas_opts.timing_loop, blas_opts.warmup_loops);
+    printf("#### args: m_outOfPlace=%d za=%d zb=%d zc=%d zd=%d\n",
+                    blas_opts.m_outOfPlace, blas_opts.zeroCopy[0], blas_opts.zeroCopy[1],
+                    blas_opts.zeroCopy[2], blas_opts.zeroCopy[3]);
 
     double cudaTime =
         calc_matmul_perf_time<T_IN_A, T_IN_B, T_IN_C, T_OUT, T_MATH, T_SCALE>(
@@ -616,7 +713,7 @@ static int lt_gemm(cublasLtHandle_t ltHandle, const BlasOpts &blas_opts,
             static_cast<const T_IN_A *>(A), AtransformDesc,
             static_cast<const T_IN_B *>(B), BtransformDesc,
             static_cast<const T_SCALE *>(&beta), C, CtransformDesc, D,
-            DtransformDesc, blas_opts.quick_autotuning ? &algo : NULL,
+            DtransformDesc, algo.get(),
             workspace, workspaceSize);
 
     double flopsCoef = 2.0;
@@ -627,7 +724,7 @@ static int lt_gemm(cublasLtHandle_t ltHandle, const BlasOpts &blas_opts,
     }
 
     double TheoreticalFlops = flopsCoef * (double)blas_opts.m *
-                              (double)blas_opts.n * (double)blas_opts.k;
+                              (double)blas_opts.n * (double)blas_opts.k * blas_opts.N;
     double cudaGflops =
         blas_opts.timing_loop * (1e-9 * TheoreticalFlops) / cudaTime;
     cublasPrintPerf(false, cudaTime, cudaGflops);
@@ -669,7 +766,7 @@ static int lt_gemm(cublasLtHandle_t ltHandle, const BlasOpts &blas_opts,
 }
 
 template <typename T_IN_A, typename T_IN_B, typename T_IN_C, typename T_OUT,
-          typename T_MATH, typename T_SCALE>
+          typename T_MATH, typename T_SCALE, typename T_SFX = T_SCALE, int VSCALE_SIZE = 1>
 static void test_engine(BlasOpts &blas_opts) {
   printf("testing cublasLt\n");
   try {
@@ -677,12 +774,23 @@ static void test_engine(BlasOpts &blas_opts) {
     T_IN_B *d_B = nullptr;
     T_IN_C *d_C = nullptr;
     T_OUT *d_D = nullptr;
+    T_IN_A *h_A = nullptr;
+    T_IN_B *h_B = nullptr;
+    T_IN_C *h_C = nullptr;
+    T_OUT *h_D = nullptr;
+
+    T_SFX *SFA = nullptr, *SFB = nullptr, *SFD = nullptr;
+    int rowsSFA, rowsSFB, rowsSFD;
+    int colsSFA, colsSFB, colsSFD;
+    bool scale_mode = ((blas_opts.case_name == "mxqqhsq") || (blas_opts.case_name == "nvoohso")) ? true : false;
+    size_t matrixSizeSFA, matrixSizeSFB, matrixSizeSFD;
+
     T_SCALE alpha = cuGet<T_SCALE>(blas_opts.alpha);
     T_SCALE beta = cuGet<T_SCALE>(blas_opts.beta);
     int matrixM = 0, matrixN = 0, matrixK = 0;
-    int rowsA = 0, rowsB = 0, rowsC = 0, rowsD = 0;
-    int colsA = 0, colsB = 0, colsC = 0, colsD = 0;
-    size_t matrixSizeA = 0, matrixSizeB = 0, matrixSizeC = 0, matrixSizeD = 0;
+    int rowsA = 0, rowsB = 0, rowsC = 0;
+    int colsA = 0, colsB = 0, colsC = 0;
+    size_t matrixSizeA = 0, matrixSizeB = 0, matrixSizeC = 0;
 
     // make sure no error
     if (!std::is_same<T_IN_C, T_OUT>::value) {
@@ -739,124 +847,223 @@ static void test_engine(BlasOpts &blas_opts) {
     }
     rowsC = imax(blas_opts.ldc, matrixM);
     colsC = matrixN;
-    rowsD = rowsC;
-    colsD = colsC;
 
     matrixSizeA = (size_t)rowsA * colsA;
     matrixSizeB = (size_t)rowsB * colsB;
     matrixSizeC = (size_t)rowsC * colsC;
-    matrixSizeD = (size_t)rowsD * colsD;
 
-    if (blas_opts.m_outOfPlace) {
-        printf("Allocate matrixSize Bytes Total A + B + C + D:  %lu \n",
-                sizeof(T_IN_A) * matrixSizeA +
-                sizeof(T_IN_B) * matrixSizeB +
-                sizeof(T_IN_C) * matrixSizeC +
-	        sizeof(T_IN_C) * matrixSizeD);
-   } else {
-        printf("Allocate matrixSize Total Bytes A + B + C:  %lu \n",
-                sizeof(T_IN_A) * matrixSizeA +
-                sizeof(T_IN_B) * matrixSizeB +
-                sizeof(T_IN_C) * matrixSizeC);
-   }
+    size_t batchStrideA = align(blas_opts.batch_strideOpt[0] ? blas_opts.batch_stride[0] : matrixSizeA, 256);
+    size_t batchStrideB = align(blas_opts.batch_strideOpt[1] ? blas_opts.batch_stride[1] : matrixSizeB, 256);
+    size_t batchStrideC = align(blas_opts.batch_strideOpt[2] ? blas_opts.batch_stride[2] : matrixSizeC, 256);
+    size_t batchStrideD = align(blas_opts.batch_strideOpt[3] ? blas_opts.batch_stride[3] : matrixSizeC, 256);
 
-    d_A = cublas::device_memory::allocate<T_IN_A>(matrixSizeA);
-    d_B = cublas::device_memory::allocate<T_IN_B>(matrixSizeB);
-    d_C = cublas::device_memory::allocate<T_IN_C>(matrixSizeC);
-    d_D = blas_opts.m_outOfPlace
-              ?  cublas::device_memory::allocate<T_OUT>(matrixSizeC)
-              : (T_OUT *)d_C;
+    #define GET_SFX_MATRIXSIZE(matrixName, M, N) \
+    if (scale_mode) {\
+      getSFDimensions<VSCALE_SIZE>(M, N, rowsSF##matrixName, colsSF##matrixName); \
+    } else { \
+      rowsSF##matrixName = 1; \
+      colsSF##matrixName = 1; \
+    } \
+    matrixSizeSF##matrixName = rowsSF##matrixName * colsSF##matrixName; \
+
+    GET_SFX_MATRIXSIZE(A, matrixK, matrixM)
+    GET_SFX_MATRIXSIZE(B, matrixK, matrixN)
+    GET_SFX_MATRIXSIZE(D, matrixM, matrixN)
+
+    #undef GET_SFX_MATRIXSIZE
 
 
-    if (!blas_opts.filling_zero) {
-      if (blas_opts.transa != CUBLAS_OP_N) {
-        cublas::cuda_check_error(
-            fillMatrixDevice(make_bufferBatchVariant(d_A, matrixSizeA),
-                             matrixSizeA, rowsA, blas_opts.k, blas_opts.m,
-                             CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P',
-                             0, 0, 0, true,
-                             1  // only use first buffer, setMatricesForGEMM
-                                // will copy to the others
-                             ),
-            "fillMatrixDevice for matrix A failed");
-      } else {
-        cublas::cuda_check_error(
-            fillMatrixDevice(make_bufferBatchVariant(d_A, matrixSizeA),
-                             matrixSizeA, rowsA, blas_opts.m, blas_opts.k,
-                             CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P',
-                             0, 0, 0, true,
-                             1  // only use first buffer, setMatricesForGEMM
-                                // will copy to the others
-                             ),
-            "fillMatrixDevice for matrix A failed");
-      }
+    if (blas_opts.check) {
+      long long gmemNeeded = 0;
+      long long sysmemNeeded = 0;
 
-      if (blas_opts.transb != CUBLAS_OP_N) {
-        cublas::cuda_check_error(
-            fillMatrixDevice(make_bufferBatchVariant(d_B, matrixSizeB),
-                             matrixSizeB, rowsB, blas_opts.n, blas_opts.k,
-                             CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P',
-                             121, 0, 0, true,
-                             1  // only use first buffer, setMatricesForGEMM
-                                // will copy to the others
-                             ),
-            "fillMatrixDevice for matrix B failed");
-      } else {
-        cublas::cuda_check_error(
-            fillMatrixDevice(make_bufferBatchVariant(d_B, matrixSizeB),
-                             matrixSizeB, rowsB, blas_opts.k, blas_opts.n,
-                             CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P',
-                             121, 0, 0, true,
-                             1  // only use first buffer, setMatricesForGEMM
-                                // will copy to the others
-                             ),
-            "fillMatrixDevice for matrix B failed");
-      }
+      gmemNeeded += blas_opts.zeroCopy[0] ? 0 : (long long)batchStrideA * blas_opts.N * sizeof(T_IN_A);
+      gmemNeeded += blas_opts.zeroCopy[1] ? 0 : (long long)batchStrideB * blas_opts.N * sizeof(T_IN_B);
+      gmemNeeded += blas_opts.zeroCopy[2] ? 0 : (long long)batchStrideC * blas_opts.N * sizeof(T_IN_C);
+      gmemNeeded += blas_opts.m_outOfPlace ? (blas_opts.zeroCopy[2] ? 0 : (long long)batchStrideD * blas_opts.N * sizeof(T_OUT)): 0;
+      gmemNeeded += scale_mode ? (long long)matrixSizeSFA * blas_opts.N * sizeof(T_SFX) : 0;
+      gmemNeeded += scale_mode ? (long long)matrixSizeSFB * blas_opts.N * sizeof(T_SFX) : 0;
+      gmemNeeded += scale_mode ? (long long)matrixSizeSFD * blas_opts.N * sizeof(T_SFX) : 0;
 
-      cublas::cuda_check_error(
-          fillMatrixDevice(make_bufferBatchVariant(d_C, matrixSizeC),
-                           matrixSizeC, rowsC, blas_opts.m, blas_opts.n,
-                           CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P', 0,
-                           0, 0, true, 1),
-          "fillMatrixDevice for matrix C failed");
-      if (blas_opts.m_outOfPlace) {
-        cublas::cuda_check_error(
-            fillMatrixDevice(make_bufferBatchVariant(d_D, matrixSizeC),
-                             matrixSizeC, rowsC, blas_opts.m, blas_opts.n,
-                             CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, 'P',
-                             0, 0, 0, true, 1),
-            "fillMatrixDevice for matrix D failed");
-      }
-    } else {
-      cublas::cuda_check_error(cudaMemset(d_A, 0, sizeof(T_IN_A) * matrixSizeA),
-                               "cudaMemset for matrix A failed");
-      cublas::cuda_check_error(cudaMemset(d_B, 0, sizeof(T_IN_B) * matrixSizeB),
-                               "cudaMemset for matrix B failed");
-      cublas::cuda_check_error(cudaMemset(d_C, 0, sizeof(T_IN_C) * matrixSizeC),
-                               "cudaMemset for matrix C failed");
-      if (blas_opts.m_outOfPlace) {
-        cublas::cuda_check_error(
-            cudaMemset(d_D, 0, sizeof(T_OUT) * matrixSizeC),
-            "cudaMemset for matrix D failed");
+      sysmemNeeded += blas_opts.zeroCopy[0] ? (long long)batchStrideA * blas_opts.N * sizeof(T_IN_A) : 0;
+      sysmemNeeded += blas_opts.zeroCopy[1] ? (long long)batchStrideB * blas_opts.N * sizeof(T_IN_B) : 0;
+      sysmemNeeded += blas_opts.zeroCopy[2] ? (long long)batchStrideC * blas_opts.N * sizeof(T_IN_C) : 0;
+      sysmemNeeded += blas_opts.m_outOfPlace ? (blas_opts.zeroCopy[3] ? (long long)batchStrideD * blas_opts.N * sizeof(T_OUT) : 0): 0;
+
+      if (checkMemory(gmemNeeded, sysmemNeeded)) {
+        printf("testing cublasLt waived\n");
+        exit(2);
       }
     }
+
+    allocateMatrixMemory(blas_opts, h_A, d_A, batchStrideA, blas_opts.zeroCopy[0], "A");
+    allocateMatrixMemory(blas_opts, h_B, d_B, batchStrideB, blas_opts.zeroCopy[1], "B");
+    allocateMatrixMemory(blas_opts, h_C, d_C, batchStrideC, blas_opts.zeroCopy[2], "C");
+    if (blas_opts.m_outOfPlace) {
+      allocateMatrixMemory(blas_opts, h_D, d_D, batchStrideD, blas_opts.zeroCopy[3], "D");
+    } else {
+      d_D = (T_OUT *)d_C;
+    }
+
+    if (scale_mode) {
+      SFA = cublas::device_memory::allocate<T_SFX>(matrixSizeSFA * blas_opts.N);
+      SFB = cublas::device_memory::allocate<T_SFX>(matrixSizeSFB * blas_opts.N);
+      SFD = cublas::device_memory::allocate<T_SFX>(matrixSizeSFD * blas_opts.N);
+    }
+
+    if (blas_opts.transa != CUBLAS_OP_N) {
+      cublas::cuda_check_error(
+          fillMatrixDevice(make_bufferBatchVariant(d_A, batchStrideA),
+                           matrixSizeA, rowsA, blas_opts.k, blas_opts.m,
+                           CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT,
+                           blas_opts.fillingPattern, 0, 0, blas_opts.filling_sd,
+                           true, blas_opts.N
+                           ),
+          "fillMatrixDevice for matrix A failed");
+    } else {
+      cublas::cuda_check_error(
+          fillMatrixDevice(make_bufferBatchVariant(d_A, batchStrideA),
+                           matrixSizeA, rowsA, blas_opts.m, blas_opts.k,
+                           CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT,
+                           blas_opts.fillingPattern, 0, 0, blas_opts.filling_sd,
+                           true, blas_opts.N
+                           ),
+          "fillMatrixDevice for matrix A failed");
+    }
+
+    if (blas_opts.transb != CUBLAS_OP_N) {
+      cublas::cuda_check_error(
+          fillMatrixDevice(make_bufferBatchVariant(d_B, batchStrideB),
+                           matrixSizeB, rowsB, blas_opts.n, blas_opts.k,
+                           CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT,
+                           blas_opts.fillingPattern, 121, 0, blas_opts.filling_sd,
+                           true, blas_opts.N
+                           ),
+          "fillMatrixDevice for matrix B failed");
+    } else {
+      cublas::cuda_check_error(
+          fillMatrixDevice(make_bufferBatchVariant(d_B, batchStrideB),
+                           matrixSizeB, rowsB, blas_opts.k, blas_opts.n,
+                           CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT,
+                           blas_opts.fillingPattern, 121, 0, blas_opts.filling_sd,
+                           true, blas_opts.N
+                           ),
+          "fillMatrixDevice for matrix B failed");
+    }
+
+    cublas::cuda_check_error(
+        fillMatrixDevice(make_bufferBatchVariant(d_C, batchStrideC),
+                         matrixSizeC, rowsC, blas_opts.m, blas_opts.n,
+                         CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT,
+                         blas_opts.fillingPattern, 0, 0, blas_opts.filling_sd,
+                         true, blas_opts.N),
+        "fillMatrixDevice for matrix C failed");
+    if (blas_opts.m_outOfPlace) {
+      cublas::cuda_check_error(
+          fillMatrixDevice(make_bufferBatchVariant(d_D, batchStrideD),
+                           matrixSizeC, rowsC, blas_opts.m, blas_opts.n,
+                           CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT,
+                           blas_opts.fillingPattern, 0, 0, blas_opts.filling_sd,
+                           true, blas_opts.N),
+          "fillMatrixDevice for matrix D failed");
+    }
+
+    if (scale_mode) {
+      #define STR(x) #x
+      #define XSTR(x) STR(x)
+      #define FILL_SFX_MATRIX(name) \
+      cublas::cuda_check_error( \
+          fillMatrixDevice(make_bufferBatchVariant(SF##name, matrixSizeSF##name), \
+                           matrixSizeSF##name, rowsSF##name, rowsSF##name, colsSF##name, \
+                           CUBLAS_FILL_MODE_FULL, CUBLAS_DIAG_NON_UNIT, \
+                           blas_opts.fillingPattern, 0, 0, blas_opts.filling_sd, \
+                           true, blas_opts.N), \
+          "fillMatrixDevice for matrix SF" XSTR(name) "failed")
+
+      FILL_SFX_MATRIX(A);
+      FILL_SFX_MATRIX(B);
+      FILL_SFX_MATRIX(D);
+
+      #undef FILL_SFX_MATRIX
+      #undef XSTR
+      #undef STR
+    }
+
+
     cublasLtHandle_t ltHandle;
     cublas::cublas_check_error(cublasLtCreate(&ltHandle),
                                "create cublasLt handle failed");
 
     bool has_error = false;
-    if (lt_gemm<T_IN_A, T_IN_B, T_IN_C, T_OUT, T_MATH, T_SCALE>(
-            ltHandle, blas_opts, d_A, d_B, d_C, d_D, alpha, beta, rowsA, rowsB,
-            rowsC)) {
+    if (lt_gemm<T_IN_A, T_IN_B, T_IN_C, T_OUT, T_MATH, T_SCALE, T_SFX>(
+            ltHandle, blas_opts,
+            d_A,
+            d_B,
+            d_C,
+            d_D,
+            SFA,
+            SFB,
+            SFD,
+            alpha, beta, rowsA, rowsB, rowsC, batchStrideA, batchStrideB, batchStrideC, batchStrideD)) {
       has_error = true;
     }
 
-    cublas::device_memory::free(d_A);
-    cublas::device_memory::free(d_B);
-    cublas::device_memory::free(d_C);
-    if (blas_opts.m_outOfPlace) {
-      cublas::device_memory::free(d_D);
+    if (blas_opts.zeroCopy[0]) {
+      if (h_A) {
+        cublas::cuda_check_error(cudaFreeHost(h_A),
+                        "cudaFreeHost for h_A failed");
+        h_A = nullptr;
+      }
+    } else {
+      cublas::device_memory::free(d_A);
     }
+    if (blas_opts.zeroCopy[1]) {
+      if (h_B) {
+        cublas::cuda_check_error(cudaFreeHost(h_B),
+                        "cudaFreeHost for h_B failed");
+        h_B = nullptr;
+      }
+    } else {
+      cublas::device_memory::free(d_B);
+    }
+    if (blas_opts.zeroCopy[2]) {
+      if (h_C) {
+        cublas::cuda_check_error(cudaFreeHost(h_C),
+                        "cudaFreeHost for h_C failed");
+        h_C = nullptr;
+      }
+    } else {
+      cublas::device_memory::free(d_C);
+    }
+    if (blas_opts.zeroCopy[3]) {
+      if (blas_opts.m_outOfPlace) {
+        if (h_D) {
+          cublas::cuda_check_error(cudaFreeHost(h_D),
+                          "cudaFreeHost for h_D failed");
+          h_D = nullptr;
+        }
+      }
+    } else {
+      if (blas_opts.m_outOfPlace) {
+        cublas::device_memory::free(d_D);
+      }
+    }
+
+    if (SFA) {
+      cublas::device_memory::free(SFA);
+      SFA = nullptr;
+    }
+
+    if (SFB) {
+      cublas::device_memory::free(SFB);
+      SFB = nullptr;
+    }
+
+    if (SFD) {
+      cublas::device_memory::free(SFD);
+      SFD = nullptr;
+    }
+
     cublas::cublas_check_error(cublasLtDestroy(ltHandle),
                                "destroy ltHandle failed");
 
@@ -865,6 +1072,7 @@ static void test_engine(BlasOpts &blas_opts) {
       exit(-1);
     } else {
       printf("testing cublasLt pass\n");
+      exit(0);
     }
 
   } catch (cublas::cuda_exception &e) {
@@ -895,17 +1103,39 @@ static void test_engine(BlasOpts &blas_opts) {
                 typename CudaTypeEnumTraits<T_SCALE>::type>(blas_opts);        \
   }
 
+#define TEST_ENGINE_MAPPING_EXT(T_IN_A, T_IN_B, T_IN_C, T_OUT, T_SCALE, T_MATH, T_SCALE_MODE) \
+  if ((blas_opts.input_type_a == T_IN_A) &&                                                   \
+      (blas_opts.input_type_b == T_IN_B) &&                                                   \
+      (blas_opts.input_type_c == T_IN_C) &&                                                   \
+      (blas_opts.output_type == T_OUT) && (blas_opts.scale_type == T_SCALE)) {                \
+    test_engine<typename CudaTypeEnumTraits<T_IN_A>::type,                                    \
+                typename CudaTypeEnumTraits<T_IN_B>::type,                                    \
+                typename CudaTypeEnumTraits<T_IN_C>::type,                                    \
+                typename CudaTypeEnumTraits<T_OUT>::type,                                     \
+                typename CudaTypeEnumTraits<T_MATH>::type,                                    \
+                typename CudaTypeEnumTraits<T_SCALE>::type,                                   \
+                typename ScaleModeEnumTraits<T_SCALE_MODE>::type,                             \
+                ScaleModeEnumTraits<T_SCALE_MODE>::vscaleSize>(blas_opts);                    \
+  }
 
 static void test_cublasLt(BlasOpts &blas_opts) {
   int device_version = 0;
-  cublas::cuda_check_error(get_device_version(device_version),
-                           "get device version failed");
+  get_device_version(device_version);
+  if (blas_opts.enableZeroCopy) {
+    cublas::cuda_check_error(cudaSetDeviceFlags(cudaDeviceMapHost),
+                    "cudaSetDeviceFlags failed");
+  }
   try {
     switch (blas_opts.math_type) {
       case CUDA_R_32F: {
         if ((blas_opts.input_type_a == CUDA_R_8F_E4M3) &&
-            (device_version < 900)) {
+            (device_version < 890)) {
           printf("not supported for the FP8 options\n");
+          return;
+        }
+        if ((blas_opts.input_type_a == CUDA_R_4F_E2M1) &&
+            (device_version < 1000)) {
+          printf("not supported for the FP4 options\n");
           return;
         }
         // sss A,B : FP32 ->  C FP32
@@ -921,6 +1151,14 @@ static void test_cublasLt(BlasOpts &blas_opts) {
         // fp8_e4m3
         TEST_ENGINE_MAPPING(CUDA_R_8F_E4M3, CUDA_R_8F_E4M3, CUDA_R_16BF,
                             CUDA_R_8F_E4M3, CUDA_R_32F, CUDA_R_32F)
+        // mx_qqhsq A,B:fp8_e4m3, C:FP16, scale type: float, output type:
+        // fp8_e4m3, -m_AscaleMode2 -m_BscaleMode2 -m_DoutscaleMode2
+        TEST_ENGINE_MAPPING_EXT(CUDA_R_8F_E4M3, CUDA_R_8F_E4M3, CUDA_R_16F,
+                                CUDA_R_8F_E4M3, CUDA_R_32F, CUDA_R_32F, CUBLASLT_MATMUL_MATRIX_SCALE_VEC32_UE8M0)
+        // nv_oohso A,B:fp4_e2m1, C:PF16, scale type: float, output type:
+        // fp4_e2m1, -m_AscaleMode1 -m_BscaleMode1 -m_DoutscaleMode1
+        TEST_ENGINE_MAPPING_EXT(CUDA_R_4F_E2M1, CUDA_R_4F_E2M1, CUDA_R_16F,
+                                CUDA_R_4F_E2M1, CUDA_R_32F, CUDA_R_32F, CUBLASLT_MATMUL_MATRIX_SCALE_VEC16_UE4M3)
         // tss A,B : BF16 ->  C FP32
         TEST_ENGINE_MAPPING(CUDA_R_16BF, CUDA_R_16BF, CUDA_R_32F, CUDA_R_32F,
                             CUDA_R_32F, CUDA_R_32F)
@@ -972,16 +1210,23 @@ static void test_cublasLt(BlasOpts &blas_opts) {
         printf("mode not supported\n");
         break;
     }
+    cudaDeviceReset();
   } catch (cublas::cuda_exception &e) {
     cout << e << endl;
     printf("testing cublasLt fail\n");
+    cudaDeviceReset();
     exit(-1);
   } catch (const std::exception &e) {
     cout << e.what() << endl;
     printf("testing cublasLt fail\n");
+    cudaDeviceReset();
     exit(-1);
   }
 }
+
+#undef TEST_ENGINE_MAPPING
+#undef TEST_ENGINE_MAPPING_EXT
+
 
 /* ------------------------------------------------------------------------------------------------------------------------------- */
 
@@ -1048,8 +1293,8 @@ int main(int argc, char *argv[]) {
         printf("Device %d: skiped\n", dev);
         continue;
       }
-      CHECK(cudaSetDevice(dev));
-      CHECK(cudaGetDeviceProperties(&devprops[dev], dev));
+      cublas::cuda_check_error(cudaSetDevice(dev), "cudaSetDevice failed");
+      cublas::cuda_check_error(cudaGetDeviceProperties(&devprops[dev], dev), "cudaGetDeviceProperties failed");
       printf("Device %d: \"%s\"\n", dev, devprops[dev].name);
       if (dev == 0)
           gpumem = devprops[dev].totalGlobalMem;
@@ -1170,7 +1415,7 @@ printf("DEBUG_MATRIX_SIZES: Checking matrix size only (no CUDA execution) for: %
   BlasOpts blas_opts;
 
   for (dev = 0; dev < deviceCount; dev++) {
-	CHECK(cudaSetDevice(dev));
+	cublas::cuda_check_error(cudaSetDevice(dev), "cudaSetDevice failed");
 	printf("Device %d: \"%s\", PCIe: %x\n", dev, devprops[dev].name,devprops[dev].pciBusID);
 
 
@@ -1189,14 +1434,6 @@ printf("DEBUG_MATRIX_SIZES: Checking matrix size only (no CUDA execution) for: %
             gst.dump_test_args(tix);
             hello_world(blas_opts, gst.stress_tests[0].P_arg);
             */
-
-            /* Parse command line optioms */
-            bool p_parse = parse_in_math_scale_out_type(blas_opts, gst.stress_tests[t_num].P_arg);
-            // cout << "DEBUG:" << "after parse" << endl;
-            if (!p_parse) {
-                printf("p_parse failed\n");
-                exit(-1);
-            }
 
             // cout << "DEBUG:" << "set opts" << endl;
 

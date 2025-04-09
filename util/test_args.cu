@@ -1,34 +1,12 @@
-/**
- * The MIT License (MIT)
- *
- * Copyright (c) 2020 NVIDIA
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
 /******************************************************************************
- * Copyright (c) 2011-2020, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 1993-2022, NVIDIA CORPORATION.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are not permitted.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
  * DISCLAIMED. IN NO EVENT SHALL NVIDIA CORPORATION BE LIABLE FOR ANY
  * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
  * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
@@ -38,8 +16,6 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  ******************************************************************************/
-
-
 #include "common_header.h"
 #include "test_args.h"
 #include "type_convert.h"
@@ -103,7 +79,11 @@ cublasComputeType_t cudaDataType2computeType(cudaDataType_t type,
   }
 }
 
-#define EPILOGUE_MAPPING(key, value)   if (epilogue == key) {                 blas_opts.m_epilogue = value;        return true;                       }
+#define EPILOGUE_MAPPING(key, value) \
+  if (epilogue == key) {             \
+    blas_opts.m_epilogue = value;    \
+    return true;                     \
+  }
 
 static bool parse_epilogue(BlasOpts &blas_opts, const string &epilogue) {
   EPILOGUE_MAPPING("Default", CUBLASLT_EPILOGUE_DEFAULT)
@@ -119,6 +99,7 @@ static bool parse_epilogue(BlasOpts &blas_opts, const string &epilogue) {
 #define IN_OUT_MATH_SCALE_TYPE_MAPPING(key, T_IN_A, T_IN_B, T_IN_C, T_OUT, \
                                        T_MATH, T_SCALE, T_COMPUTE)         \
   if (in_math_scale_out_type == key) {                                     \
+    blas_opts.case_name = key;                                             \
     blas_opts.input_type_a = T_IN_A;                                       \
     blas_opts.input_type_b = T_IN_B;                                       \
     blas_opts.input_type_c = T_IN_C;                                       \
@@ -129,7 +110,7 @@ static bool parse_epilogue(BlasOpts &blas_opts, const string &epilogue) {
     return true;                                                           \
   }
 
-bool parse_in_math_scale_out_type(BlasOpts &blas_opts,
+static bool parse_in_math_scale_out_type(BlasOpts &blas_opts,
                                          const string &in_math_scale_out_type) {
   IN_OUT_MATH_SCALE_TYPE_MAPPING("sss", CUDA_R_32F, CUDA_R_32F, CUDA_R_32F,
                                  CUDA_R_32F, CUDA_R_32F, CUDA_R_32F,
@@ -163,6 +144,12 @@ bool parse_in_math_scale_out_type(BlasOpts &blas_opts,
                                  CUBLAS_COMPUTE_32I)
   IN_OUT_MATH_SCALE_TYPE_MAPPING(
       "qqssq", CUDA_R_8F_E4M3, CUDA_R_8F_E4M3, CUDA_R_16BF, CUDA_R_8F_E4M3,
+      CUDA_R_32F, CUDA_R_32F, cudaDataType2computeType(CUDA_R_32F, false))
+  IN_OUT_MATH_SCALE_TYPE_MAPPING(
+      "mxqqhsq", CUDA_R_8F_E4M3, CUDA_R_8F_E4M3, CUDA_R_16F, CUDA_R_8F_E4M3,
+      CUDA_R_32F, CUDA_R_32F, cudaDataType2computeType(CUDA_R_32F, false))
+  IN_OUT_MATH_SCALE_TYPE_MAPPING(
+      "nvoohso", CUDA_R_4F_E2M1, CUDA_R_4F_E2M1, CUDA_R_16F, CUDA_R_4F_E2M1,
       CUDA_R_32F, CUDA_R_32F, cudaDataType2computeType(CUDA_R_32F, false))
   IN_OUT_MATH_SCALE_TYPE_MAPPING("tss", CUDA_R_16BF, CUDA_R_16BF, CUDA_R_32F,
                                  CUDA_R_32F, CUDA_R_32F, CUDA_R_32F,
@@ -249,6 +236,14 @@ static void usage(void) {
       "c: bfloat16, math type: float, scale type: float, output type: "
       "fp8_e4m3\n");
   printf(
+      "  mxqqhsq: input type a: fp8_e4m3, input type b: fp8_e4m3, input type "
+      "c: half, math type: float, scale type: float, block scale type: fp8_e8m0, block size: 32, output type: "
+      "fp8_e4m3\n");
+  printf(
+      "  nvoohso: input type a: fp4_e2m1, input type b: fp4_e2m1, input type "
+      "c: half, math type: float, scale type: float, block scale type: fp8_e4m3, block size: 16, output type: "
+      "fp4_e2m1\n");
+  printf(
       "    tss: input type: bfloat16, math type: float, output type: float , "
       "scale "
       "type: float\n");
@@ -264,19 +259,25 @@ static void usage(void) {
   printf(
       "-T=<int> : run N times back to back  , good for power consumption, no "
       "results checking\n");
+  printf("-W=<int> : run N times for warmup (default : 100)\n");
   printf("-lda=<int> : leading dimension of A , m by default\n");
-  printf("-ldb<number> : leading dimension of B , k by default\n");
-  printf("-ldc<number> : leading dimension of C , m by default\n");
+  printf("-ldb=<int> : leading dimension of B , k by default\n");
+  printf("-ldc=<int> : leading dimension of C , m by default\n");
   printf("-ta= op(A) {0=no transpose, 1=transpose, 2=hermitian}\n");
   printf("-tb= op(B) {0=no transpose, 1=transpose, 2=hermitian}\n");
   printf(
-      "-p=<int> : 0:fill all matrices with zero, otherwise fill with "
-      "pseudorandom "
-      "distribution\n");
+      "-p=<0|z|r|t|P> : 0 or z:fill all matrices with zero, r: fill with normal distribution, "
+      "t: uniform with random signs, otherwise fill with pseudorandom distribution\n");
+  printf("-sd=<float> : standard deviation for normal distribution filling mode\n");
   printf("-m_outOfPlace=<int> : out of place (C != D), 0: disable, 1:enable\n");
   printf("-m_epilogue={Default,Bias,Gelu,ReLu,ReLuBias,GeluBias}\n");
+  printf("-z<a|b|c|d>=<0|1> : zero-copy , A,B,C or D is pinned on the Host, 0: disable, 1:enable\n");
+  printf("-s : shows the CUDA configuration of the machines\n");
+  printf("-C=<0|1> : check available memory before running a test, 0: disable, 1:enable\n");
+  printf("-strided_batch=<0|1> : run strided batched GEMM API, 0: disable, 1:enable\n");
+  printf("-N=<int> : number of matrices to run test\n");
+  printf("-batch_stride<A,B,C,D>=<int64_t> : offset between matrices in strided batched GEMM\n");
 }
-
 
 void parse_args(CommandLine &command_line, BlasOpts &blas_opts) {
   memset((void *)&blas_opts, 0, sizeof(BlasOpts));
@@ -295,15 +296,22 @@ void parse_args(CommandLine &command_line, BlasOpts &blas_opts) {
   blas_opts.n = DEFAULT_1024;
   blas_opts.k = DEFAULT_1024;
   blas_opts.timing_loop = 1;
+  blas_opts.warmup_loops = 100;
   blas_opts.m_orderingA = CUBLASLT_ORDER_COL;
   blas_opts.m_orderingB = CUBLASLT_ORDER_COL;
   blas_opts.m_orderingC = CUBLASLT_ORDER_COL;
   blas_opts.alpha = 1.0f;
   blas_opts.beta = 1.0f;
-  blas_opts.filling_zero = false;
+  blas_opts.fillingPattern = 'P';
+  blas_opts.filling_sd = 1.0;
+  blas_opts.filling_mean = 0.0;
   blas_opts.m_outOfPlace = false;
   blas_opts.m_epilogue = CUBLASLT_EPILOGUE_DEFAULT;
   blas_opts.quick_autotuning = false;
+  blas_opts.enableZeroCopy = false;
+  blas_opts.check = false;
+  blas_opts.N = 1;
+  blas_opts.useBatch = false;
 
   if (command_line.check_cmd_line_flag("m")) {
     command_line.get_cmd_line_argument("m", blas_opts.m);
@@ -342,6 +350,9 @@ void parse_args(CommandLine &command_line, BlasOpts &blas_opts) {
     command_line.get_cmd_line_argument("T", blas_opts.timing_loop);
     blas_opts.timing_only = true;
   }
+  if (command_line.check_cmd_line_flag("W")) {
+    command_line.get_cmd_line_argument("W", blas_opts.warmup_loops);
+  }
   if ((command_line.check_cmd_line_flag("h")) ||
       (command_line.check_cmd_line_flag("help"))) {
     usage();
@@ -378,11 +389,10 @@ void parse_args(CommandLine &command_line, BlasOpts &blas_opts) {
     blas_opts.transb_opt = true;
   }
   if (command_line.check_cmd_line_flag("p")) {
-    int filling_pattern = 0;
-    command_line.get_cmd_line_argument("p", filling_pattern);
-    if (filling_pattern == 0) {
-      blas_opts.filling_zero = true;
-    }
+    command_line.get_cmd_line_argument("p", blas_opts.fillingPattern);
+  }
+  if (command_line.check_cmd_line_flag("sd")) {
+    command_line.get_cmd_line_argument("sd", blas_opts.filling_sd);
   }
   if (command_line.check_cmd_line_flag("m_outOfPlace")) {
     int m_outOfPlace = 0;
@@ -407,6 +417,72 @@ void parse_args(CommandLine &command_line, BlasOpts &blas_opts) {
       blas_opts.quick_autotuning = true;
     }
   }
+  if (command_line.check_cmd_line_flag("za")) {
+    command_line.get_cmd_line_argument("za", blas_opts.zeroCopy[0]);
+    blas_opts.enableZeroCopy = true;
+  }
+  if (command_line.check_cmd_line_flag("zb")) {
+    command_line.get_cmd_line_argument("zb", blas_opts.zeroCopy[1]);
+    blas_opts.enableZeroCopy = true;
+  }
+  if (command_line.check_cmd_line_flag("zc")) {
+    command_line.get_cmd_line_argument("zc", blas_opts.zeroCopy[2]);
+    blas_opts.enableZeroCopy = true;
+  }
+  if (command_line.check_cmd_line_flag("zd")) {
+    command_line.get_cmd_line_argument("zd", blas_opts.zeroCopy[3]);
+    blas_opts.enableZeroCopy = true;
+  }
+  if (command_line.check_cmd_line_flag("s")) {
+    exit(showDevices(0));
+  }
+  if (command_line.check_cmd_line_flag("C")) {
+    int check = 0;
+    command_line.get_cmd_line_argument("C", check);
+    if (check != 0) {
+      blas_opts.check = true;
+    }
+  }
+  if (command_line.check_cmd_line_flag("N")) {
+    int N = 0;
+    command_line.get_cmd_line_argument("N", N);
+    if (1 != N) {
+      if (command_line.check_cmd_line_flag("strided_batch")) {
+        int strided_batch = 0;
+        command_line.get_cmd_line_argument("strided_batch", strided_batch);
+        if (strided_batch != 0) {
+          blas_opts.N = N;
+        } else {
+          printf("^^^^ Stride batched is disable, N should be 1\n");
+        }
+      } else {
+        printf("^^^^ Stride batched is disable, N should be 1\n");
+      }
+    }
+  }
+  if (command_line.check_cmd_line_flag("strided_batch")) {
+    int strided_batch = 0;
+    command_line.get_cmd_line_argument("strided_batch", strided_batch);
+    if (strided_batch != 0) {
+      blas_opts.useBatch = true;
+    }
+  }
+  if (command_line.check_cmd_line_flag("batch_strideA")) {
+    command_line.get_cmd_line_argument("batch_strideA", blas_opts.batch_stride[0]);
+    blas_opts.batch_strideOpt[0] = true;
+  }
+  if (command_line.check_cmd_line_flag("batch_strideB")) {
+    command_line.get_cmd_line_argument("batch_strideB", blas_opts.batch_stride[1]);
+    blas_opts.batch_strideOpt[1] = true;
+  }
+  if (command_line.check_cmd_line_flag("batch_strideC")) {
+    command_line.get_cmd_line_argument("batch_strideC", blas_opts.batch_stride[2]);
+    blas_opts.batch_strideOpt[2] = true;
+  }
+  if (command_line.check_cmd_line_flag("batch_strideD")) {
+    command_line.get_cmd_line_argument("batch_strideD", blas_opts.batch_stride[3]);
+    blas_opts.batch_strideOpt[3] = true;
+  }
   if (!command_line.all_flags_checked()) {
     exit(-1);
   }
@@ -414,6 +490,8 @@ void parse_args(CommandLine &command_line, BlasOpts &blas_opts) {
 
 void reset_blas_opts(CommandLine& command_line, BlasOpts &blas_opts)
 {
+  memset ((void *)&blas_opts, 0, sizeof(BlasOpts));
+  parse_args(command_line, blas_opts);
   memset((void *)&blas_opts, 0, sizeof(BlasOpts));
   blas_opts.timing_only = false;
   blas_opts.transa = DEFAULT_TRANS_OP_N;
@@ -429,24 +507,20 @@ void reset_blas_opts(CommandLine& command_line, BlasOpts &blas_opts)
   blas_opts.m = DEFAULT_1024;
   blas_opts.n = DEFAULT_1024;
   blas_opts.k = DEFAULT_1024;
+  if (command_line.check_cmd_line_flag("T")) {
+     command_line.get_cmd_line_argument("T", blas_opts.timing_loop);
+ }
+ else {
+     blas_opts.timing_loop = 10;
+ }
   blas_opts.timing_loop = 1;
   blas_opts.m_orderingA = CUBLASLT_ORDER_COL;
   blas_opts.m_orderingB = CUBLASLT_ORDER_COL;
   blas_opts.m_orderingC = CUBLASLT_ORDER_COL;
   blas_opts.alpha = 1.0f;
   blas_opts.beta = 1.0f;
-  blas_opts.filling_zero = false;
   blas_opts.m_outOfPlace = false;
   blas_opts.m_epilogue = CUBLASLT_EPILOGUE_DEFAULT;
   blas_opts.quick_autotuning = false;
-
- if (command_line.check_cmd_line_flag("T")) {
-     command_line.get_cmd_line_argument("T", blas_opts.timing_loop);
- }
- else {
-     blas_opts.timing_loop = 10;
- }
-
 }
-
 

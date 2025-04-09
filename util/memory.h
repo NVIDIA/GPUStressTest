@@ -1,34 +1,12 @@
-/**
- * The MIT License (MIT)
- *
- * Copyright (c) 2020 NVIDIA
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
 /******************************************************************************
- * Copyright (c) 2011-2020, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 1993-2022, NVIDIA CORPORATION.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are not permitted.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
  * DISCLAIMED. IN NO EVENT SHALL NVIDIA CORPORATION BE LIABLE FOR ANY
  * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
  * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
@@ -38,7 +16,6 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  ******************************************************************************/
-
 
 #pragma once
 
@@ -50,6 +27,7 @@
 #include <memory>
 
 #include "exceptions.h"
+#include "test_util.h"
 
 namespace cublas {
 namespace device_memory {
@@ -58,7 +36,8 @@ namespace device_memory {
  * Allocation lifetime
  ******************************************************************************/
 
-/// Allocate a buffer of \p count elements of type \p T on the current CUDA device
+/// Allocate a buffer of \p count elements of type \p T on the current CUDA
+/// device
 template <typename T>
 T* allocate(size_t count = 1) {
   T* ptr = 0;
@@ -90,8 +69,7 @@ void free(T* ptr) {
 template <typename T>
 void copy(T* dst, T const* src, size_t count, cudaMemcpyKind kind) {
   size_t bytes = count * sizeof(T);
-  if (bytes == 0 && count > 0)
-    bytes = 1;
+  if (bytes == 0 && count > 0) bytes = 1;
   cudaError_t cuda_error = (cudaMemcpy(dst, src, bytes, kind));
   if (cuda_error != cudaSuccess) {
     throw cuda_exception(cuda_error, "cudaMemcpy() failed");
@@ -120,7 +98,8 @@ void copy_host_to_host(T* dst, T const* src, size_t count = 1) {
 
 /// Copies elements from device memory to host-side range
 template <typename OutputIterator, typename T>
-void insert_to_host(OutputIterator begin, OutputIterator end, T const* device_begin) {
+void insert_to_host(OutputIterator begin, OutputIterator end,
+                    T const* device_begin) {
   size_t elements = end - begin;
   copy_to_host(&*begin, device_begin, elements);
 }
@@ -131,5 +110,22 @@ void insert_to_device(T* device_begin, InputIterator begin, InputIterator end) {
   size_t elements = end - begin;
   copy_to_device(device_begin, &*begin, elements);
 }
-} // namespace device_memory 
-} // namespace cublas
+
+template <typename T>
+static void allocateMatrixMemory(const BlasOpts &blas_opts, T *&h_A, T *&d_A, size_t matrixSize, bool zeroCopy, const std::string &matrixName) {
+  if (zeroCopy) {
+    std::string err = "gpuAllocPinnedAndMap for matrix " + matrixName + " in allocateMatrixMemory failed";
+    cublas::cuda_check_error(gpuAllocPinnedAndMap(
+                            matrixSize * blas_opts.N * sizeof(T), (void**)&h_A, (void**)&d_A),
+                    err.c_str());
+  } else {
+    d_A = cublas::device_memory::allocate<T>(matrixSize * blas_opts.N);
+  }
+}
+
+static inline size_t align(size_t offset, size_t alignment) {
+  return ((offset + alignment - 1) / alignment * alignment);
+}
+
+}  // namespace device_memory
+}  // namespace cublas

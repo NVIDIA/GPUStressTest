@@ -25,7 +25,11 @@ endif()
 set(FLAGS "")
 set(CMAKE_CUDA_FLAGS "" CACHE STRING "" FORCE)
 # Note that cmake will insert semicolons between these item automatically...
-set(SM_LIST_IN "70,75,80,90" CACHE STRING "Please input compute capability")
+# was
+#70,75,80,90,100
+# new
+# 75,80,86,89,90,100,101,120
+set(SM_LIST_IN "75,80,86,89,90,100,101,120" CACHE STRING "Please input compute capability")
 MARK_AS_ADVANCED(SM_LIST)
 string(REPLACE "\," "\ " DISPLAY_SMS_LIST ${SM_LIST_IN})
 string(REPLACE "\," "\;" SM_LIST ${SM_LIST_IN})
@@ -95,7 +99,7 @@ include_directories(${CUDA_HOME}/cublasLt)
 LIST(APPEND SRC_FILES
     ${PROJECT_SOURCE_DIR}/util/test_args.cu
     ${PROJECT_SOURCE_DIR}/util/measure.cc
-    ${PROJECT_SOURCE_DIR}/util/device_info.cu
+    ${PROJECT_SOURCE_DIR}/util/device_info.cc
     ${PROJECT_SOURCE_DIR}/util/test_util.cu
     )
 
