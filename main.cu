@@ -1072,7 +1072,6 @@ static void test_engine(BlasOpts &blas_opts) {
       exit(-1);
     } else {
       printf("testing cublasLt pass\n");
-      exit(0);
     }
 
   } catch (cublas::cuda_exception &e) {
@@ -1301,7 +1300,7 @@ int main(int argc, char *argv[]) {
       else {
           if (gpumem != devprops[dev - 1].totalGlobalMem) {
               printf("Detected different GPU memory sizes\n");
-              printf("gpumem: %lld, GPU %d %lld\n", (long long) gpumem, (dev - 1), (long long) devprops[dev - 1].totalGlobalMem);
+              printf("gpumem: %lld, GPU %d %lld\n", (long long) gpumem, (dev - 1), (long long) devprops[dev - 1].totalGlobalMem              );
               printf("EXITING...\n");
               exit(0);
           }
@@ -1319,8 +1318,12 @@ int main(int argc, char *argv[]) {
   printf("%s done capturing GPU information.\n", argv[0]);
 
 // These entries should match GST::test_suite; clever C++ way to range over the enum and cast to string not obvious...
-for (string gpu_name :  {"T4", "A100_40", "A100_80", "K80", "M60", "P40", "P100", "H100", "H200", "V100_16", "V100_32", "Generic", "NVIDIA Graphics Device"}) {
+for (string gpu_name :  {"T4", "A100_40", "A100_80", "K80", "M60", "P40", "P100", "B200", "H100", "H200", "V100_16", "V100_32", "Generic", "NVIDIA Graphics Device"}) {
 
+if (!gpu_name.compare(string("A100_80"))) { 
+    printf("set A100_80\n");
+    gpumem = 80;
+}
 if (!gpu_name.compare(string("A100_80"))) { 
     printf("set A100_80\n");
     gpumem = 80;
@@ -1330,10 +1333,25 @@ else if (!gpu_name.compare(string("V100_32"))) {
     gpumem = 32;
 }
 
-printf("DEBUG_MATRIX_SIZES: Checking matrix size only (no CUDA execution) for: %s\n", gpu_name.c_str());
+  printf("DEBUG_MATRIX_SIZES: Checking matrix size only (no CUDA execution) for: %s\n", gpu_name.c_str());
+
 #endif
+
+// Early release B200 / RTX6000
+  if (!gpu_name.compare(string("NVIDIA Graphics Device"))) {
+    printf("set B200\n");
+    gpumem = 180;
+    gpu_name = "B200";
+  }
  
   while (true) {
+
+    if (gpu_name.find("B200", 0) != string::npos) {
+        cout << "Initilizing B200 based test suite" << endl;
+        gst = GST(GST::B200);
+        memgb = 180;
+        break;
+    }
     if (gpu_name.find("A100", 0) != string::npos) {
 
         if (gpumem > 40) {
@@ -1420,8 +1438,6 @@ printf("DEBUG_MATRIX_SIZES: Checking matrix size only (no CUDA execution) for: %
 
 
 	for (int t_num = 0; t_num  < NUM_TESTS; t_num++) {
-
-
 
             /* Abort if watchdog has died */
             if (watchdog_bailed) {
@@ -1536,6 +1552,14 @@ printf("DEBUG_MATRIX_SIZES: Checking matrix size only (no CUDA execution) for: %
                 blas_opts.math_type = CUDA_R_32I;
                 blas_opts.scale_type = CUDA_R_32I;
                 blas_opts.compute_type = CUBLAS_COMPUTE_32I;
+            } else if (gst.stress_tests[t_num].P_arg.compare(0, 9, "nvoohso") == 0) {
+                blas_opts.input_type_a = CUDA_R_4F_E2M1;
+                blas_opts.input_type_b = CUDA_R_4F_E2M1;
+                blas_opts.input_type_c = CUDA_R_16F;
+                blas_opts.output_type = CUDA_R_4F_E2M1;
+                blas_opts.math_type = CUDA_R_32F;
+                blas_opts.scale_type = CUDA_R_32F;
+                blas_opts.compute_type = cudaDataType2computeType(CUDA_R_32F, false);
             }
 
             blas_opts.m = gst.stress_tests[t_num].m_arg;
@@ -1548,6 +1572,7 @@ printf("DEBUG_MATRIX_SIZES: Checking matrix size only (no CUDA execution) for: %
             blas_opts.m_opt = true;
             blas_opts.n_opt = true;
             blas_opts.beta_opt = true;
+            blas_opts.N = 1;
 
 
 
