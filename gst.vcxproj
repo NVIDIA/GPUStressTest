@@ -1,6 +1,7 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="packages\vcpkg.C.Users.Administrator.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.vcpkg.props" Condition="Exists('packages\vcpkg.C.Users.Administrator.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.vcpkg.props')" />
+  <Import Project="packages\vcpkg.C.Users.Administrator.source.repos.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.source.repos.vcpkg.props" Condition="Exists('packages\vcpkg.C.Users.Administrator.source.repos.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.source.repos.vcpkg.props')" />
+  <Import Project="packages\vcpkg.C.Users.Administrator.source.repos.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.source.repos.vcpkg.props" Condition="Exists('packages\vcpkg.C.Users.Administrator.source.repos.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.source.repos.vcpkg.props')" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -23,7 +24,6 @@
     <CudaCompile Include="main.cu">
       <FileType>CudaCompile</FileType>
     </CudaCompile>
-    <CudaCompile Include="util\device_info.cu" />
     <CudaCompile Include="util\test_args.cu" />
     <CudaCompile Include="util\test_util.cu" />
   </ItemGroup>
@@ -42,6 +42,7 @@
     <ClInclude Include="util\GST.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="util\device_info.cc" />
     <ClCompile Include="util\measure.cc" />
   </ItemGroup>
   <ItemGroup>
@@ -83,7 +84,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(ProgramFiles)\NVIDIA GPU Computing Toolkit\CUDA\v12.6\extras\visual_studio_integration\MSBuildExtensions\CUDA 12.6.props" />
+    <Import Project="$(ProgramFiles)\NVIDIA GPU Computing Toolkit\CUDA\v12.8\extras\visual_studio_integration\MSBuildExtensions\CUDA 12.8.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -112,7 +113,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;DEBUG_MATRIX_SIZES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir);util</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir);util;C:\Users\Administrator\source\repos\vcpkg\packages\pthreads_x64-windows\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -184,14 +185,17 @@
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(CUDA_PATH)\extras\visual_studio_integration\MSBuildExtensions\CUDA 12.6.targets" />
+    <Import Project="$(CUDA_PATH)\extras\visual_studio_integration\MSBuildExtensions\CUDA 12.8.targets" />
     <Import Project="packages\vcpkg.C.Users.Administrator.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.vcpkg.targets" Condition="Exists('packages\vcpkg.C.Users.Administrator.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.vcpkg.targets')" />
+    <Import Project="packages\vcpkg.C.Users.Administrator.source.repos.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.source.repos.vcpkg.targets" Condition="Exists('packages\vcpkg.C.Users.Administrator.source.repos.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.source.repos.vcpkg.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('packages\vcpkg.C.Users.Administrator.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.vcpkg.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\vcpkg.C.Users.Administrator.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.vcpkg.props'))" />
+    <Error Condition="!Exists('packages\vcpkg.C.Users.Administrator.source.repos.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.source.repos.vcpkg.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\vcpkg.C.Users.Administrator.source.repos.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.source.repos.vcpkg.props'))" />
     <Error Condition="!Exists('packages\vcpkg.C.Users.Administrator.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.vcpkg.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\vcpkg.C.Users.Administrator.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.vcpkg.targets'))" />
+    <Error Condition="!Exists('packages\vcpkg.C.Users.Administrator.source.repos.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.source.repos.vcpkg.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\vcpkg.C.Users.Administrator.source.repos.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.source.repos.vcpkg.props'))" />
+    <Error Condition="!Exists('packages\vcpkg.C.Users.Administrator.source.repos.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.source.repos.vcpkg.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\vcpkg.C.Users.Administrator.source.repos.vcpkg.1.0.0\build\native\vcpkg.C.Users.Administrator.source.repos.vcpkg.targets'))" />
   </Target>
 </Project>
