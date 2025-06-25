@@ -895,7 +895,7 @@ static void test_engine(BlasOpts &blas_opts) {
         exit(2);
       }
     }
-
+#ifndef DEBUG_MATRIX_SIZES
     allocateMatrixMemory(blas_opts, h_A, d_A, batchStrideA, blas_opts.zeroCopy[0], "A");
     allocateMatrixMemory(blas_opts, h_B, d_B, batchStrideB, blas_opts.zeroCopy[1], "B");
     allocateMatrixMemory(blas_opts, h_C, d_C, batchStrideC, blas_opts.zeroCopy[2], "C");
@@ -904,6 +904,7 @@ static void test_engine(BlasOpts &blas_opts) {
     } else {
       d_D = (T_OUT *)d_C;
     }
+
 
     if (scale_mode) {
       SFA = cublas::device_memory::allocate<T_SFX>(matrixSizeSFA * blas_opts.N);
@@ -989,7 +990,6 @@ static void test_engine(BlasOpts &blas_opts) {
       #undef STR
     }
 
-
     cublasLtHandle_t ltHandle;
     cublas::cublas_check_error(cublasLtCreate(&ltHandle),
                                "create cublasLt handle failed");
@@ -1066,7 +1066,7 @@ static void test_engine(BlasOpts &blas_opts) {
 
     cublas::cublas_check_error(cublasLtDestroy(ltHandle),
                                "destroy ltHandle failed");
-
+#endif //DEBUG_MATRIX_SIZES
     if (has_error) {
       printf("testing cublasLt fail\n");
       exit(-1);
@@ -1087,7 +1087,11 @@ static void test_engine(BlasOpts &blas_opts) {
     printf("testing cublasLt fail\n");
     exit(-1);
   }
+
+
 }
+
+
 
 #define TEST_ENGINE_MAPPING(T_IN_A, T_IN_B, T_IN_C, T_OUT, T_SCALE, T_MATH)    \
   if ((blas_opts.input_type_a == T_IN_A) &&                                    \
@@ -1318,7 +1322,7 @@ int main(int argc, char *argv[]) {
   printf("%s done capturing GPU information.\n", argv[0]);
 
 // These entries should match GST::test_suite; clever C++ way to range over the enum and cast to string not obvious...
-for (string gpu_name :  {"T4", "A100_40", "A100_80", "K80", "M60", "P40", "P100", "B200", "H100", "H200", "V100_16", "V100_32", "Generic", "NVIDIA Graphics Device"}) {
+for (string gpu_name :  {"RTX6000", "T4", "A100_40", "A100_80", "K80", "M60", "P40", "P100", "B200", "H100", "H200", "V100_16", "V100_32", "Generic", "NVIDIA Graphics Device"}) {
 
 if (!gpu_name.compare(string("A100_80"))) { 
     printf("set A100_80\n");
@@ -1346,12 +1350,18 @@ else if (!gpu_name.compare(string("V100_32"))) {
  
   while (true) {
 
-    if (gpu_name.find("B200", 0) != string::npos) {
-        cout << "Initilizing B200 based test suite" << endl;
-        gst = GST(GST::B200);
-        memgb = 180;
-        break;
-    }
+      if (gpu_name.find("6000", 0) != string::npos) {
+          cout << "Initilizing RTX6000 based test suite" << endl;
+          gst = GST(GST::RTX6000);
+          memgb = 38;
+          break;
+      }
+      if (gpu_name.find("B200", 0) != string::npos) {
+          cout << "Initilizing B200 based test suite" << endl;
+          gst = GST(GST::B200);
+          memgb = 180;
+          break;
+      }
     if (gpu_name.find("A100", 0) != string::npos) {
 
         if (gpumem > 40) {
