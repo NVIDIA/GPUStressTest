@@ -1286,6 +1286,11 @@ int main(int argc, char *argv[]) {
   }
   printf("%s Done.\n", argv[0]);
 
+  int loop_arg = -1;
+  if (command_line.check_cmd_line_flag("T")) {
+      command_line.get_cmd_line_argument("T", loop_arg);
+      printf("Loop (T) %d\n", loop_arg);
+  }
 
   /* GPU detection and test initilization */
   int dev;
@@ -1353,7 +1358,7 @@ else if (!gpu_name.compare(string("V100_32"))) {
       if (gpu_name.find("6000", 0) != string::npos) {
           cout << "Initilizing RTX6000 based test suite" << endl;
           gst = GST(GST::RTX6000);
-          memgb = 38;
+          memgb = 95;
           break;
       }
       if (gpu_name.find("B200", 0) != string::npos) {

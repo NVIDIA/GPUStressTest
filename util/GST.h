@@ -189,8 +189,8 @@ private:
         stress_tests[0].test_state = 0;
         stress_tests[0].P_arg = "bisb_imma";
         stress_tests[0].m_arg = 81218;
-        stress_tests[0].n_arg = 34263;
-        stress_tests[0].k_arg = 322437;
+        stress_tests[0].n_arg = 64263;
+        stress_tests[0].k_arg = 622437;
         stress_tests[0].ta_arg = 1;
         stress_tests[0].tb_arg = 0;
         stress_tests[0].B_arg = 0;
