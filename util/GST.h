@@ -196,9 +196,9 @@ private:
         stress_tests[0].test_name = "FP16";
         stress_tests[0].test_state = 0;
         stress_tests[0].P_arg = "hsh";
-        stress_tests[0].m_arg = 59982;
+        stress_tests[0].m_arg = 80982;
         stress_tests[0].n_arg = 89336;
-        stress_tests[0].k_arg = 157286;
+        stress_tests[0].k_arg = 207286;
         stress_tests[0].ta_arg = 0;
         stress_tests[0].tb_arg = 1;
         stress_tests[0].B_arg = 0;
