@@ -521,5 +521,12 @@ void reset_blas_opts(CommandLine& command_line, BlasOpts &blas_opts)
   blas_opts.m_outOfPlace = false;
   blas_opts.m_epilogue = CUBLASLT_EPILOGUE_DEFAULT;
   blas_opts.quick_autotuning = false;
+  blas_opts.fillingPattern = 't';
+  blas_opts.filling_sd = 2;
+
+  
+  if (command_line.check_cmd_line_flag("sd")) {
+      command_line.get_cmd_line_argument("sd", blas_opts.filling_sd);
+  }
 }
 

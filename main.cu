@@ -1471,6 +1471,7 @@ else if (!gpu_name.compare(string("V100_32"))) {
             reset_blas_opts(command_line, blas_opts);
             gst.dump_test_args(t_num);
 
+
             if (gst.stress_tests[t_num].P_arg.compare(0, 3, "sss") == 0 ) {
                 blas_opts.input_type_a = CUDA_R_32F;
                 blas_opts.input_type_b = CUDA_R_32F;
@@ -1478,7 +1479,7 @@ else if (!gpu_name.compare(string("V100_32"))) {
                 blas_opts.output_type = CUDA_R_32F;
                 blas_opts.math_type = CUDA_R_32F;
                 blas_opts.scale_type = CUDA_R_32F;
-                blas_opts.compute_type = cudaDataType2computeType(CUDA_R_32F, false); 
+                blas_opts.compute_type = cudaDataType2computeType(CUDA_R_32F, false);
             } else if (gst.stress_tests[t_num].P_arg.compare(0, 3, "hss") == 0) {
                 blas_opts.input_type_a = CUDA_R_16F;
                 blas_opts.input_type_b = CUDA_R_16F;
@@ -1567,7 +1568,7 @@ else if (!gpu_name.compare(string("V100_32"))) {
                 blas_opts.math_type = CUDA_R_32I;
                 blas_opts.scale_type = CUDA_R_32I;
                 blas_opts.compute_type = CUBLAS_COMPUTE_32I;
-            } else if (gst.stress_tests[t_num].P_arg.compare(0, 9, "nvoohso") == 0) {
+            } else if (gst.stress_tests[t_num].P_arg.compare(0, 7, "nvoohso") == 0) {
                 blas_opts.input_type_a = CUDA_R_4F_E2M1;
                 blas_opts.input_type_b = CUDA_R_4F_E2M1;
                 blas_opts.input_type_c = CUDA_R_16F;
@@ -1588,8 +1589,8 @@ else if (!gpu_name.compare(string("V100_32"))) {
             blas_opts.n_opt = true;
             blas_opts.beta_opt = true;
             blas_opts.N = 1;
-
-
+            blas_opts.fillingPattern = 't';
+            blas_opts.filling_sd = 2;
 
             printf("\n***** STARTING TEST %d: %s On Device %d %s\n", t_num, gst.stress_tests[t_num].test_name, dev, devprops[dev].name);
             fflush(stdout);

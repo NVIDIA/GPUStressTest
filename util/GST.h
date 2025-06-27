@@ -102,6 +102,8 @@ public:
         int ta_arg = 0;
         int tb_arg = 0;
         int B_arg = 0;
+        std::string p_arg;
+        int sd_arg = 0;
     };
 
     struct stress_test_args stress_tests[NUM_TESTS];
@@ -158,15 +160,8 @@ public:
         init_generic();
     }
     
-    void dump_test_args(const int t_num) {
-        printf("stress_tests[%d].test_name %s\n"
-               "P %s\n" 
-               "m %d\n" 
-               "n %d\n" 
-               "k %d\n" 
-               "ta %d\n" 
-               "tb %d\n" 
-               "B %d\n", 
+    void dump_test_args(int t_num) {
+        printf("stress_tests[%d].test_name %s\n  P %s\n  m %d\n  n %d\n  k %d\n  ta %d\n  tb %d\n  B %d\n  p %s\n  sd %d\n",
 	       t_num,
 	       stress_tests[t_num].test_name,
 	       stress_tests[t_num].P_arg.c_str(),
@@ -175,9 +170,9 @@ public:
 	       stress_tests[t_num].k_arg,
 	       stress_tests[t_num].ta_arg,
 	       stress_tests[t_num].tb_arg,
-	       stress_tests[t_num].B_arg);
-
-	       
+	       stress_tests[t_num].B_arg,
+           stress_tests[t_num].p_arg.c_str(),
+           stress_tests[t_num].sd_arg);
 
         return;
     }
@@ -185,14 +180,27 @@ public:
 private: 
 
     void init_rtx6000() {
-        stress_tests[0].test_name = "INT8";
+/** Gets CUBLAS_STATUS_INVALID_VALUE
+        stress_tests[0].test_name = "FP4";
         stress_tests[0].test_state = 0;
-        stress_tests[0].P_arg = "bisb_imma";
-        stress_tests[0].m_arg = 81218;
-        stress_tests[0].n_arg = 64263;
-        stress_tests[0].k_arg = 622437;
+        stress_tests[0].P_arg = "nvoohso";
+        stress_tests[0].m_arg = 9472;
+        stress_tests[0].n_arg = 4096;
+        stress_tests[0].k_arg = 16384;
         stress_tests[0].ta_arg = 1;
         stress_tests[0].tb_arg = 0;
+        stress_tests[0].B_arg = 0;
+        stress_tests[0].p_arg = 't';
+        stress_tests[0].sd_arg = 2;
+ **/
+        stress_tests[0].test_name = "FP16";
+        stress_tests[0].test_state = 0;
+        stress_tests[0].P_arg = "hsh";
+        stress_tests[0].m_arg = 59982;
+        stress_tests[0].n_arg = 89336;
+        stress_tests[0].k_arg = 157286;
+        stress_tests[0].ta_arg = 0;
+        stress_tests[0].tb_arg = 1;
         stress_tests[0].B_arg = 0;
 
         stress_tests[1].test_name = "FP16";
