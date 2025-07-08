@@ -1495,6 +1495,17 @@ else if (!gpu_name.compare(string("V100_32"))) {
 #ifdef DEBUG_MATRIX_SIZES
    printf("MATRIX SIZES: 4 4 4 \n");
 #endif
+            } else if (gst.stress_tests[t_num].P_arg.compare(0, 13, "sss_fast_tf32") == 0) {
+                blas_opts.input_type_a = CUDA_R_32F;
+                blas_opts.input_type_b = CUDA_R_32F;
+                blas_opts.input_type_c = CUDA_R_32F;
+                blas_opts.output_type = CUDA_R_32F;
+                blas_opts.math_type = CUDA_R_32F;
+                blas_opts.scale_type = CUDA_R_32F;
+                blas_opts.compute_type = CUBLAS_COMPUTE_32F_FAST_TF32;
+#ifdef DEBUG_MATRIX_SIZES
+   printf("MATRIX SIZES: 4 4 4 \n");
+#endif
             } else if (gst.stress_tests[t_num].P_arg.compare(0, 3, "hss") == 0) {
                 blas_opts.input_type_a = CUDA_R_16F;
                 blas_opts.input_type_b = CUDA_R_16F;
@@ -1621,6 +1632,17 @@ else if (!gpu_name.compare(string("V100_32"))) {
                 blas_opts.input_type_b = CUDA_R_4F_E2M1;
                 blas_opts.input_type_c = CUDA_R_16F;
                 blas_opts.output_type = CUDA_R_4F_E2M1;
+                blas_opts.math_type = CUDA_R_32F;
+                blas_opts.scale_type = CUDA_R_32F;
+                blas_opts.compute_type = cudaDataType2computeType(CUDA_R_32F, false);
+#ifdef DEBUG_MATRIX_SIZES
+   printf("MATRIX SIZES: 1 1 2 \n");
+#endif
+            } else if (gst.stress_tests[t_num].P_arg.compare(0, 7, "mxqqhsq") == 0) {
+                blas_opts.input_type_a = CUDA_R_8F_E4M3;
+                blas_opts.input_type_b = CUDA_R_8F_E4M3;
+                blas_opts.input_type_c = CUDA_R_16F;
+                blas_opts.output_type = CUDA_R_8F_E4M3;
                 blas_opts.math_type = CUDA_R_32F;
                 blas_opts.scale_type = CUDA_R_32F;
                 blas_opts.compute_type = cudaDataType2computeType(CUDA_R_32F, false);
