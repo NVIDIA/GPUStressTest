@@ -852,6 +852,12 @@ static void test_engine(BlasOpts &blas_opts) {
     matrixSizeB = (size_t)rowsB * colsB;
     matrixSizeC = (size_t)rowsC * colsC;
 
+#ifdef DEBUG_MATRIX_SIZES
+   printf("matrixSizeA %ld matrixSizeB %ld matrixSizeC %ld m_outOfPlace %d\n", 
+           matrixSizeA, matrixSizeB, matrixSizeC, blas_opts.m_outOfPlace);
+#endif
+
+
     size_t batchStrideA = align(blas_opts.batch_strideOpt[0] ? blas_opts.batch_stride[0] : matrixSizeA, 256);
     size_t batchStrideB = align(blas_opts.batch_strideOpt[1] ? blas_opts.batch_stride[1] : matrixSizeB, 256);
     size_t batchStrideC = align(blas_opts.batch_strideOpt[2] ? blas_opts.batch_stride[2] : matrixSizeC, 256);
@@ -1244,6 +1250,12 @@ int main(int argc, char *argv[]) {
   sem_init(&done, 0, 0);
   void(*watchdog(void*));
 
+#ifdef DEBUG_MATRIX_SIZES
+  printf("DEBUG_MATRIX_SIZES is defined\n");
+#else
+  printf("DEBUG_MATRIX_SIZES not defined\n");
+#endif
+
   if (pthread_attr_init(&attr)) {
     perror("pthread_attr_init - watchdog");
     exit(-1);
@@ -1480,6 +1492,9 @@ else if (!gpu_name.compare(string("V100_32"))) {
                 blas_opts.math_type = CUDA_R_32F;
                 blas_opts.scale_type = CUDA_R_32F;
                 blas_opts.compute_type = cudaDataType2computeType(CUDA_R_32F, false);
+#ifdef DEBUG_MATRIX_SIZES
+   printf("MATRIX SIZES: 4 4 4 \n");
+#endif
             } else if (gst.stress_tests[t_num].P_arg.compare(0, 3, "hss") == 0) {
                 blas_opts.input_type_a = CUDA_R_16F;
                 blas_opts.input_type_b = CUDA_R_16F;
@@ -1488,6 +1503,9 @@ else if (!gpu_name.compare(string("V100_32"))) {
                 blas_opts.math_type = CUDA_R_32F;
                 blas_opts.scale_type = CUDA_R_32F;
                 blas_opts.compute_type = cudaDataType2computeType(CUDA_R_32F, false);
+#ifdef DEBUG_MATRIX_SIZES
+   printf("MATRIX SIZES: 2 2 4 \n");
+#endif
             } else if (gst.stress_tests[t_num].P_arg.compare(0, 3, "hsh") == 0) {
                 blas_opts.input_type_a = CUDA_R_16F;
                 blas_opts.input_type_b = CUDA_R_16F;
@@ -1496,6 +1514,9 @@ else if (!gpu_name.compare(string("V100_32"))) {
                 blas_opts.math_type = CUDA_R_32F;
                 blas_opts.scale_type = CUDA_R_32F;
                 blas_opts.compute_type = cudaDataType2computeType(CUDA_R_32F, false);
+#ifdef DEBUG_MATRIX_SIZES
+   printf("MATRIX SIZES: 2 2 2 \n");
+#endif
             } else if (gst.stress_tests[t_num].P_arg.compare(0, 5, "qqssq") == 0) {
                 blas_opts.input_type_a = CUDA_R_8F_E4M3;
                 blas_opts.input_type_b = CUDA_R_8F_E4M3;
@@ -1504,6 +1525,9 @@ else if (!gpu_name.compare(string("V100_32"))) {
                 blas_opts.math_type = CUDA_R_32F;
                 blas_opts.scale_type = CUDA_R_32F;
                 blas_opts.compute_type = cudaDataType2computeType(CUDA_R_32F, false);
+#ifdef DEBUG_MATRIX_SIZES
+   printf("MATRIX SIZES: 1 1 2 \n");
+#endif
             } else if (gst.stress_tests[t_num].P_arg.compare(0, 3, "tss") == 0 ) {
                 blas_opts.input_type_a = CUDA_R_16BF;
                 blas_opts.input_type_b = CUDA_R_16BF;
@@ -1512,6 +1536,9 @@ else if (!gpu_name.compare(string("V100_32"))) {
                 blas_opts.math_type = CUDA_R_32F;
                 blas_opts.scale_type = CUDA_R_32F;
                 blas_opts.compute_type = cudaDataType2computeType(CUDA_R_32F, false);
+#ifdef DEBUG_MATRIX_SIZES
+   printf("MATRIX SIZES: 2 2 4 \n");
+#endif
             } else if (gst.stress_tests[t_num].P_arg.compare(0, 3, "tst") == 0 ) {
                 blas_opts.input_type_a = CUDA_R_16BF;
                 blas_opts.input_type_b = CUDA_R_16BF;
@@ -1520,6 +1547,9 @@ else if (!gpu_name.compare(string("V100_32"))) {
                 blas_opts.math_type = CUDA_R_32F;
                 blas_opts.scale_type = CUDA_R_32F;
                 blas_opts.compute_type = cudaDataType2computeType(CUDA_R_32F, false);
+#ifdef DEBUG_MATRIX_SIZES
+   printf("MATRIX SIZES: 2 2 2  \n");
+#endif
             } else if (gst.stress_tests[t_num].P_arg.compare(0, 3, "ccc") == 0) {
                 blas_opts.input_type_a = CUDA_C_32F;
                 blas_opts.input_type_b = CUDA_C_32F;
@@ -1528,6 +1558,9 @@ else if (!gpu_name.compare(string("V100_32"))) {
                 blas_opts.math_type = CUDA_C_32F;
                 blas_opts.scale_type = CUDA_C_32F;
                 blas_opts.compute_type = cudaDataType2computeType(CUDA_C_32F, false);
+#ifdef DEBUG_MATRIX_SIZES
+   printf("MATRIX SIZES: 4 4 4  \n");
+#endif
             } else if (gst.stress_tests[t_num].P_arg.compare(0, 3, "ddd") == 0) {
                 blas_opts.input_type_a = CUDA_R_64F;
                 blas_opts.input_type_b = CUDA_R_64F;
@@ -1536,6 +1569,9 @@ else if (!gpu_name.compare(string("V100_32"))) {
                 blas_opts.math_type = CUDA_R_64F;
                 blas_opts.scale_type = CUDA_R_64F;
                 blas_opts.compute_type = cudaDataType2computeType(CUDA_R_64F, false);
+#ifdef DEBUG_MATRIX_SIZES
+   printf("MATRIX SIZES: 8 8 8 \n");
+#endif
             } else if (gst.stress_tests[t_num].P_arg.compare(0, 3, "zzz") == 0) {
                 blas_opts.input_type_a = CUDA_C_64F;
                 blas_opts.input_type_b = CUDA_C_64F;
@@ -1544,6 +1580,9 @@ else if (!gpu_name.compare(string("V100_32"))) {
                 blas_opts.math_type = CUDA_C_64F;
                 blas_opts.scale_type = CUDA_C_64F;
                 blas_opts.compute_type = cudaDataType2computeType(CUDA_C_64F, false);
+#ifdef DEBUG_MATRIX_SIZES
+   printf("MATRIX SIZES: 8 8 8 \n");
+#endif
             } else if (gst.stress_tests[t_num].P_arg.compare(0, 3, "hhh") == 0) {
                 blas_opts.input_type_a = CUDA_R_16F;
                 blas_opts.input_type_b = CUDA_R_16F;
@@ -1552,6 +1591,9 @@ else if (!gpu_name.compare(string("V100_32"))) {
                 blas_opts.math_type = CUDA_R_16F;
                 blas_opts.scale_type = CUDA_R_16F;
                 blas_opts.compute_type = cudaDataType2computeType(CUDA_R_16F, false);
+#ifdef DEBUG_MATRIX_SIZES
+   printf("MATRIX SIZES: 2 2 2 \n");
+#endif
             } else if (gst.stress_tests[t_num].P_arg.compare(0, 9, "bisb_imma") == 0) {
                 blas_opts.input_type_a = CUDA_R_8I;
                 blas_opts.input_type_b = CUDA_R_8I;
@@ -1560,6 +1602,9 @@ else if (!gpu_name.compare(string("V100_32"))) {
                 blas_opts.math_type = CUDA_R_32I;
                 blas_opts.scale_type = CUDA_R_32I;
                 blas_opts.compute_type = CUBLAS_COMPUTE_32I;
+#ifdef DEBUG_MATRIX_SIZES
+   printf("MATRIX SIZES: 1 1 1  \n");
+#endif
             } else if (gst.stress_tests[t_num].P_arg.compare(0, 9, "bii_imma") == 0) {
                 blas_opts.input_type_a = CUDA_R_8I;
                 blas_opts.input_type_b = CUDA_R_8I;
@@ -1568,6 +1613,9 @@ else if (!gpu_name.compare(string("V100_32"))) {
                 blas_opts.math_type = CUDA_R_32I;
                 blas_opts.scale_type = CUDA_R_32I;
                 blas_opts.compute_type = CUBLAS_COMPUTE_32I;
+#ifdef DEBUG_MATRIX_SIZES
+   printf("MATRIX SIZES: 1 1 4 \n");
+#endif
             } else if (gst.stress_tests[t_num].P_arg.compare(0, 7, "nvoohso") == 0) {
                 blas_opts.input_type_a = CUDA_R_4F_E2M1;
                 blas_opts.input_type_b = CUDA_R_4F_E2M1;
@@ -1576,6 +1624,9 @@ else if (!gpu_name.compare(string("V100_32"))) {
                 blas_opts.math_type = CUDA_R_32F;
                 blas_opts.scale_type = CUDA_R_32F;
                 blas_opts.compute_type = cudaDataType2computeType(CUDA_R_32F, false);
+#ifdef DEBUG_MATRIX_SIZES
+   printf("MATRIX SIZES: 1 1 2 \n");
+#endif
             }
 
             blas_opts.m = gst.stress_tests[t_num].m_arg;
@@ -1616,9 +1667,7 @@ else if (!gpu_name.compare(string("V100_32"))) {
                     break;
                 }
             else
-#ifndef DEBUG_MATRIX_SIZES
                 printf("***** TEST PASSED ****\n");
-#endif
               continue;
             }
             tstate[t_num].end_time = time(NULL);
