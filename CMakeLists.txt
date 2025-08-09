@@ -25,7 +25,7 @@ endif()
 set(FLAGS "")
 set(CMAKE_CUDA_FLAGS "" CACHE STRING "" FORCE)
 # Note that cmake will insert semicolons between these item automatically...
-set(SM_LIST_IN "70,75,80,90" CACHE STRING "Please input compute capability")
+set(SM_LIST_IN "75,80,90" CACHE STRING "Please input compute capability")
 MARK_AS_ADVANCED(SM_LIST)
 string(REPLACE "\," "\ " DISPLAY_SMS_LIST ${SM_LIST_IN})
 string(REPLACE "\," "\;" SM_LIST ${SM_LIST_IN})

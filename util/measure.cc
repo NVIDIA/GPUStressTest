@@ -236,28 +236,31 @@ void printGemmSOL(int mathMode, double computeSeconds, int iterations, int m, in
     return;
   }
 
+  int clockRate;
+  cudaDeviceGetAttribute(&clockRate, cudaDevAttrClockRate, device_id);
+
   // Set theoretical throughput to 0 at first (will be set later based on architecture)
   double theoryThroughput = 0;
 
   assert((prop.major == 3) || (prop.major == 5) || (prop.major == 6) || (prop.major == 7) || (prop.major == 8));
   if(prop.major == 8) {
-    theoryThroughput = 2 * 64  * (double)prop.multiProcessorCount * (double)prop.clockRate*1e3;
+    theoryThroughput = 2 * 64  * (double)prop.multiProcessorCount * (double)clockRate*1e3;
   } else if(prop.major == 7) {
-    theoryThroughput = 2 * 64  * (double)prop.multiProcessorCount * (double)prop.clockRate*1e3;
+    theoryThroughput = 2 * 64  * (double)prop.multiProcessorCount * (double)clockRate*1e3;
   } else if(prop.major == 6) { // On Pascal, we have 64 or 128 FMAs per SM per clock
     if(prop.minor == 0) { // SM60 GP100
-      theoryThroughput = 2 * 64  * (double)prop.multiProcessorCount * (double)prop.clockRate*1e3;
+      theoryThroughput = 2 * 64  * (double)prop.multiProcessorCount * (double)clockRate*1e3;
     } else { // SM61+ GP102+
-      theoryThroughput = 2 * 128 * (double)prop.multiProcessorCount * (double)prop.clockRate*1e3;
+      theoryThroughput = 2 * 128 * (double)prop.multiProcessorCount * (double)clockRate*1e3;
     }
   }
   // If Maxwell, we can compute 128FMAs per SM per clock
   else if(prop.major > 3){
-    theoryThroughput = 2 * 128 * (double)prop.multiProcessorCount * (double)prop.clockRate*1e3;
+    theoryThroughput = 2 * 128 * (double)prop.multiProcessorCount * (double)clockRate*1e3;
   }
   // If Kepler, we can compute 192FMAs per SM per clock
   else{
-    theoryThroughput = 2 * 192 * (double)prop.multiProcessorCount * (double)prop.clockRate*1e3;
+    theoryThroughput = 2 * 192 * (double)prop.multiProcessorCount * (double)clockRate*1e3;
   }
   // Correct for non-sgemm flops count, depending om the architecture
   theoryThroughput *= coefGemmSOL<T_MATH>(mathMode, prop.major, prop.minor, algorithm);
